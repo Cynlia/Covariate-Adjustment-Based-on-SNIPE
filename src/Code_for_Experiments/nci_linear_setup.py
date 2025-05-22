@@ -1,0 +1,1341 @@
+import numpy as np
+import random
+import networkx as nx
+import scipy.sparse
+from sklearn.linear_model import LinearRegression
+from scipy.special import comb
+from itertools import combinations
+import time
+from scipy.spatial import distance_matrix
+
+########################################
+# Functions to generate random networks
+########################################
+
+def erdos_renyi(n,p,undirected=False):
+    '''
+    Generates a random network of n nodes using the Erdos-Renyi method,
+    where the probability that an edge exists between two nodes is p.
+
+    Returns the adjacency matrix of the network as an n by n numpy array
+    '''
+    A = np.random.rand(n,n)
+    A = (A < p) + 0
+    A[range(n),range(n)] = 1   # everyone is affected by their own treatment
+    if undirected:
+        A = symmetrizeGraph(A)
+    return scipy.sparse.csr_array(A)
+
+def soft_RGG(X,n,sigma,link_fn = None):
+    '''
+    Generates a random network of n nodes using the Erdos-Renyi method,
+    where the probability that an edge exists between two nodes is p.
+
+    Returns the adjacency matrix of the network as an n by n numpy array
+    '''
+    dist_mat = distance_matrix(X, X)
+    dist_mat /= np.max(dist_mat)
+    if link_fn is None:
+        link_fn = lambda d: np.exp(-d / sigma)
+    A = (np.random.rand(n, n) < link_fn(dist_mat)).astype(int)
+
+    return scipy.sparse.csr_array(A)
+
+def config_model_nx(N, exp = 2.5, law = "out"):
+    '''
+    Returns the adjacency matrix A (as a numpy array) of a networkx configuration
+    model with power law degree sequences
+
+    N (int): number of nodes
+    law (str): inicates whether in-, out- or both in- and out-degrees should be distributed as a power law
+        "out" : out-degrees distributed as powerlaw, in-degrees sum up to same # as out-degrees
+        "in" : in-degrees distributed as powerlaw, out-degrees sum up to same # as in-degrees
+        "both" : both in- and out-degrees distributed as powerlaw
+    unif (bool): if True, constrains in or out-degrees to be uniform (depends on which law you pass)
+    '''
+    assert law in ["out", "in", "both"], "law must = 'out', 'in', or 'both'"
+    if law == "out":
+        deg_seq_out = powerlaw_degrees(N, exp)
+        deg_seq_in = uniform_degrees(N,np.sum(deg_seq_out))
+    elif law == "in":
+        deg_seq_in = powerlaw_degrees(N, exp=2.5)
+        deg_seq_out = uniform_degrees(N,np.sum(deg_seq_in))
+    else:
+        deg_seq_out = powerlaw_degrees(N, exp=2.5)
+        #this will likely spit out error bc sum of indegrees might not be equal to sum of outdegrees
+        deg_seq_in = powerlaw_degrees(N, exp=2.5)
+
+    G = nx.generators.degree_seq.directed_configuration_model(deg_seq_in,deg_seq_out)
+
+    G.remove_edges_from(nx.selfloop_edges(G)) # remove self-loops
+    G = nx.DiGraph(G)                         # remove parallel edges
+    A = nx.to_scipy_sparse_matrix(G)                  # retrieve adjacency matrix
+    A.setdiag(np.ones(N))                    # everyone is affected by their own treatment
+
+    return A
+
+def powerlaw_degrees(N, exp):
+    S_out = np.around(nx.utils.powerlaw_sequence(N, exponent=exp), decimals=0).astype(int)
+    out_sum = np.sum(S_out)
+    if (out_sum % 2 != 0):
+        ind = np.random.randint(N)
+        S_out[ind] += 1
+    '''
+    S_in = np.around(nx.utils.powerlaw_sequence(N, exponent=2.5), decimals=0).astype(int)
+    while (np.sum(S_in) != out_sum):
+        # either keep adding or subtracting until they are equal
+        pass
+    '''
+    return S_out
+
+def uniform_degrees(n,sum):
+    '''
+    Given n and sum, returns array whose entries add up to sum where each entry is in {sum/n, (sum,n)+1}
+    i.e. to create uniform degrees for a network that add up to a specific number
+
+    n: size of network
+    sum: number that the entries of the array must add up to
+    '''
+    degs = (np.ones(n)*np.floor(sum/n)).astype(int)
+    i = 0
+    while np.sum(degs) != sum:
+        degs[i] += 1
+        i += 1
+    return degs
+
+def small_world(n,k,p):
+    '''
+    Returns adjacency matrix (A, numpy array) of random network using the Watts-
+    Strogatz graph function in the networkx package.
+
+    n (int): number of nodes
+    k (int): Each node is joined with its k nearest neighbors in a ring topology
+    p (float, in [0,1]): probability of rewiring each edge
+    '''
+    G = nx.watts_strogatz_graph(n, k, p)
+    A = nx.to_scipy_sparse_matrix(G)                  # retrieve adjacency matrix
+    A.setdiag(np.ones(n))                    # everyone is affected by their own treatment
+
+    return A
+
+def SBM(clusterSize, probabilities):
+    '''
+    Returns adjacency matrix A (numpy array) of a stochastic block matrix where
+
+    # TODO:
+    clusterSize
+    probabilities
+
+    **ASSUME SYMMETRIC PROBABILITY MATRIX**
+    '''
+    p = np.kron(probabilities, np.ones((clusterSize,clusterSize)))
+    n = p.shape[0]
+    A = np.random.rand(n,n)
+    A = (A < p) + 0
+    A[range(n),range(n)] = 1   # everyone is affected by their own treatment
+    return scipy.sparse.csr_matrix(A)
+
+def symmetrizeGraph(A):
+    n = A.shape[0]
+    if A.shape[1] != n:
+        print("Error: adjacency matrix is not square!")
+        return A
+    for i in range(n):
+        for j in range(i):
+            A[i,j] = A[j,i]
+    return A
+
+def printGraph(A,filename, symmetric=True):
+    f = open(filename, 'w')
+    print("# graph", file=f)
+    print("# Nodes: "+str(A.shape[0]), file=f)
+    print("# NodeId\tNodeId", file=f)
+    indices = np.argwhere(A)
+    for i in indices:
+        if symmetric and i[0] > i[1]:
+                continue
+        print(str(i[0])+"\t"+str(i[1]), file=f)
+    f.close()
+
+def loadGraph(filename, n, symmetric=True):
+    A = np.zeros((n,n))
+    f = open(filename, 'r')
+    next(f)
+    next(f)
+    next(f)
+    for line in f:
+        line = line.strip()
+        ind = line.split()
+        A[int(ind[0]),int(ind[1])] = 1
+        if symmetric:
+            A[int(ind[1]),int(ind[0])] = 1
+    
+    A[range(n),range(n)] = 1   # everyone is affected by their own treatment
+    return scipy.sparse.csr_matrix(A)
+
+def loadPartition(filename, n):
+    partition = np.zeros(n)
+    f = open(filename, 'r')
+    next(f)
+    c_id = 0
+    for line in f:
+        line = line.strip()
+        ind = line.split()
+        for i in ind:
+            partition[int(i)] = c_id
+        c_id += 1
+  
+    clusters = np.zeros((n,c_id))
+    for i in range(n):
+        clusters[i,int(partition[int(i)])] = 1
+
+    return clusters
+
+########################################
+# Functions to generate network weights
+########################################
+
+def simpleWeights(A, diag=5, offdiag=5, rand_diag=np.array([]), rand_offdiag=np.array([])):
+    '''
+    Returns weights generated from simpler model
+
+    A (numpy array): adjacency matrix of the network
+    diag (float): maximum norm of direct effects
+    offidiag (float): maximum norm of the indirect effects
+    '''
+    n = A.shape[0]
+
+    if rand_offdiag.size == 0:
+        rand_offdiag = np.random.rand(n)
+    C_offdiag = offdiag*rand_offdiag
+
+    in_deg = scipy.sparse.diags(np.array(A.sum(axis=1)).flatten(),0)  # array of the in-degree of each node
+    C = in_deg.dot(A - scipy.sparse.eye(n))
+    col_sum = np.array(C.sum(axis=0)).flatten()
+    col_sum[col_sum==0] = 1
+    temp = scipy.sparse.diags(C_offdiag/col_sum)
+    C = C.dot(temp)
+
+    # out_deg = np.array(A.sum(axis=0)).flatten() # array of the out-degree of each node
+    # out_deg[out_deg==0] = 1
+    # temp = scipy.sparse.diags(C_offdiag/out_deg)
+    # C = A.dot(temp)
+
+    if rand_diag.size == 0:
+        rand_diag = np.random.rand(n)
+    C_diag = diag*rand_diag
+    C.setdiag(C_diag)
+
+    return C
+
+def simpleWeights(A, diag=5, offdiag=5, rand_diag=np.array([]), rand_offdiag=np.array([])):
+    '''
+    Returns weights generated from simpler model
+
+    A (numpy array): adjacency matrix of the network
+    diag (float): maximum norm of direct effects
+    offidiag (float): maximum norm of the indirect effects
+    '''
+    n = A.shape[0]
+
+    if rand_offdiag.size == 0:
+        rand_offdiag = np.random.rand(n)
+    C_offdiag = offdiag*rand_offdiag
+
+    in_deg = scipy.sparse.diags(np.array(A.sum(axis=1)).flatten(),0)  # array of the in-degree of each node
+    C = in_deg.dot(A - scipy.sparse.eye(n))
+    col_sum = np.array(C.sum(axis=0)).flatten()
+    col_sum[col_sum==0] = 1
+    temp = scipy.sparse.diags(C_offdiag/col_sum)
+    C = C.dot(temp)
+
+    # out_deg = np.array(A.sum(axis=0)).flatten() # array of the out-degree of each node
+    # out_deg[out_deg==0] = 1
+    # temp = scipy.sparse.diags(C_offdiag/out_deg)
+    # C = A.dot(temp)
+
+    if rand_diag.size == 0:
+        rand_diag = np.random.rand(n)
+    C_diag = diag*rand_diag
+    C.setdiag(C_diag)
+
+    return C
+
+def simpleXWeights_old(A, X, M, diag=5, offdiag=5, rand_diag=np.array([]), rand_offdiag=np.array([])):
+    '''
+    Returns weights generated from simpler model
+
+    A (numpy array): adjacency matrix of the network
+    diag (float): maximum norm of direct effects
+    offidiag (float): maximum norm of the indirect effects
+    '''
+    n = A.shape[0]
+
+    if rand_offdiag.size == 0:
+        rand_offdiag = np.random.rand(n)
+    C_offdiag = offdiag*rand_offdiag
+
+    in_deg = scipy.sparse.diags(np.array(A.sum(axis=1)).flatten(),0)  # array of the in-degree of each node
+    C = in_deg.dot(A - scipy.sparse.eye(n))
+    XM = X @ M / np.sum(np.abs(X @ M)) * n ** 2
+    X_temp = XM * offdiag
+    X_temp[range(n),range(n)] = np.diag(XM) * diag
+    col_sum = np.array(C.sum(axis=0)).flatten()
+    #X_col_sum = np.array(X_temp.sum(axis=0)).flatten()
+    col_sum[col_sum==0] = 1
+    # X_col_sum[X_col_sum == 0] = 1
+    #X_col_sum = np.ones_like(X_col_sum)
+    temp = scipy.sparse.diags(C_offdiag/col_sum)
+    C = C.dot(temp)
+    #X_temp = X_temp @ np.diag(offdiag/np.max(np.abs(X_temp),axis=0)*np.max(np.abs(C),axis=0))
+
+
+    # out_deg = np.array(A.sum(axis=0)).flatten() # array of the out-degree of each node
+    # out_deg[out_deg==0] = 1
+    # temp = scipy.sparse.diags(C_offdiag/out_deg)
+    # C = A.dot(temp)
+
+    if rand_diag.size == 0:
+        rand_diag = np.random.rand(n)
+    C_diag = diag*rand_diag
+    C.setdiag(C_diag)
+    # X_temp[range(n),range(n)] = diag * np.diag((X @ M)/np.mean(np.abs(X_temp),axis=0)*np.mean(np.abs(C),axis=0))
+    # print(X.shape, M.shape)
+    # print(np.linalg.norm(C.toarray()), np.linalg.norm(A.multiply(X @ M).toarray()))
+    X_temp = X_temp / 5
+    C = C + A.multiply(X_temp)
+    
+
+    return C
+
+def simpleXWeights(A, X, M, diag=5, offdiag=5, rand_diag=np.array([]), rand_offdiag=np.array([])):
+    '''
+    Returns weights generated from simpler model
+
+    A (numpy array): adjacency matrix of the network
+    diag (float): maximum norm of direct effects
+    offidiag (float): maximum norm of the indirect effects
+    '''
+    n = A.shape[0]
+
+    if rand_offdiag.size == 0:
+        rand_offdiag = np.random.rand(n)
+    C_offdiag = offdiag*rand_offdiag
+
+    in_deg = scipy.sparse.diags(np.array(A.sum(axis=1)).flatten(),0)  # array of the in-degree of each node
+    C = in_deg.dot(A - scipy.sparse.eye(n))
+    col_sum = np.array(C.sum(axis=0)).flatten()
+    col_sum[col_sum==0] = 1
+    temp = scipy.sparse.diags(C_offdiag/col_sum)
+    C = C.dot(temp)
+
+    if rand_diag.size == 0:
+        rand_diag = np.random.rand(n)
+    C_diag = diag*rand_diag
+    C.setdiag(C_diag)
+    
+    XM = (A.multiply(X @ M)).toarray()
+    diag_XM = diag*np.diag(np.diag(XM))
+    offdiag_XM = XM - np.diag(np.diag(XM))
+    col_sum_X = np.sum(abs(offdiag_XM), axis=0, keepdims=True)
+    col_sum_X[col_sum_X == 0] = 1
+    offdiag_XM =  offdiag*offdiag_XM/col_sum_X
+    X_temp = diag_XM + offdiag_XM
+    
+    C = C + A.multiply(X_temp)
+    
+
+    return C
+
+def weights_im_normal(n, d=1, sigma=0.1, neg=0):
+    '''
+    Returns weights C (numpy array) under the influence and malleability framework,
+    with Gaussian mean-zero noise.
+
+    n (int): number of individuals
+    d (int): number of influence dimensions
+    sigma (float): standard deviation of noise
+    neg (0 or 1): 0 if restricted to non-negative weights, 1 otherwise
+    '''
+    X = np.random.rand(d,n)              # influence
+    W = np.random.rand(d,n)              # malliability
+
+    if neg==0:
+      E = np.abs(np.random.normal(scale=sigma, size=(n,n)))
+    else:
+      E = np.random.normal(scale=sigma, size=(n,n))
+    C = X.T.dot(W)+E
+    return C
+
+def weights_im_beta(n, d=1, alpha=0.5, gamma=0.5):
+    '''
+    Returns weights C (numpy array) under the influence and malleability framework,
+    with noise distributed as Beta(alpha, gamma)
+
+    n (int): number of individuals
+    d (int): number of influence dimensions
+    alpha (float): shape parameter of Beta distribtion
+    gamma (float): shape parameter of Beta distribtion
+    '''
+    X = np.random.rand(d,n)              # influence
+    W = np.random.rand(d,n)              # malliability
+    E = np.random.beta(alpha, gamma, size=(n,n))
+    C = X.T.dot(W)+E
+    return C
+
+def weights_im_expo(n, d=1, lam=1.5):
+    '''
+    Returns weights C (numpy array) under the influence and malleability framework,
+    with noise distributed as Expo(lam)
+
+    n (int): number of individuals
+    d (int): number of influence dimensions
+    lam (float): the mean of the Exponential distribution
+    '''
+    X = np.random.rand(d,n)              # influence
+    W = np.random.rand(d,n)              # malliability
+    E = np.random.exponential(lam, size=(n,n))
+    C = X.T.dot(W)+E
+    return C
+
+def weights_im_unif(n, d=1):
+    '''
+    Returns weights C (numpy array) under the influence and malleability framework,
+    with noise distributed as Uniform(0,1)
+
+    n (int): number of individuals
+    d (int): number of influence dimensions
+    '''
+    X = np.random.rand(d,n)              # influence
+    W = np.random.rand(d,n)              # malliability
+    E = np.random.rand(n,n)
+    C = X.T.dot(W)+E
+    return C
+
+def weights_discrete(n, diag=2, offdiag=1.5):
+    '''
+    Returns normalized weights from discrete set ~ binomial
+    n (int): number of nodes
+    diag  (float): controls magnitude of diagonal elements
+    offdiag (float): controls magnitude of off-diagonal elements
+    '''
+    C = np.random.rand(n,n)
+    C[C < 1/16] = -2
+    C[C >= 15/16] = 2
+    C[np.logical_and(C >= 1/16, C < 5/16)] = -1
+    C[np.logical_and(C >= 5/16, C < 11/16)] = 0
+    C[np.logical_and(C >= 11/16, C < 15/16)] = 1
+
+    # remove diagonal elements and normalize off-diagonal elements
+    np.fill_diagonal(C, 0)
+    col_norms = np.linalg.norm(C, axis=0)
+    C = (C / col_norms[None,:]) * offdiag * np.random.rand(n)[None,:]
+
+    # diagonal elements
+    C_diag = np.ones(n) * diag * np.random.rand(n)
+
+    # add back the diagonal
+    C += np.diag(C_diag)
+
+    return C
+
+def weights_discrete_nonneg(n, diag=4, offdiag=3):
+    '''
+    Returns normalized non-negative weights from discrete set ~ binomial
+    n (int): number of nodes
+    diag  (float): controls magnitude of diagonal elements
+    offdiag (float): controls magnitude of off-diagonal elements
+    '''
+    C = np.random.rand(n,n)
+    C[C < 1/16] = 0
+    C[C >= 15/16] = 4
+    C[np.logical_and(C >= 1/16, C < 5/16)] = 1
+    C[np.logical_and(C >= 5/16, C < 11/16)] = 1.5
+    C[np.logical_and(C >= 11/16, C < 15/16)] = 2
+
+    # remove diagonal elements and normalize off-diagonal elements
+    np.fill_diagonal(C, 0)
+    col_norms = np.linalg.norm(C, axis=0)
+    C = (C / col_norms[None,:]) * offdiag * np.random.rand(n)[None,:]
+
+    # diagonal elements
+    C_diag = np.ones(n) * diag * np.random.rand(n)
+
+    # add back the diagonal
+    C += np.diag(C_diag)
+
+    return C
+
+def weights_node_deg_expo(A, d=1, lam=1, prop=1):
+    '''
+    Returns weighted adjacency matrix C (numpy array) where weights depend on
+    node-degree as Expo(node_deg) or Expo(1/node_deg) or Expo(0)
+
+    A (square numpy array): adjacency matrix of your network
+    d (int): influence/malleability dimension
+    lam (float): rate of exponential distribution governing noise
+    prop (int): governs the dependence of the weights on the node degrees
+        prop = 0: both influence & malleability are inverse proportional to node deg
+        prop = 1: both influence & malleability are directly proportional to node deg
+        prop = 2: influence is inverse proportional to node deg, malleability directly prop
+        prop = 3: influence is directly proportional to node deg, malleability inversely prop
+    '''
+    n = A.shape[0]
+    out_deg = np.sum(A,axis=1) # array of the out-degree of each node
+    in_deg = np.sum(A,axis=0)  # array of the in-degree of each node
+    M_out = np.max(out_deg)    # max out-degree
+    M_in = np.max(in_deg)      # max in-degree
+
+    # ensures we don't pass "infinity" as the scale in the next step
+    scaled_out_deg = M_out / out_deg
+    scaled_in_deg = M_in / in_deg
+    scaled_out_deg[scaled_out_deg > M_out] = 0
+    scaled_in_deg[scaled_in_deg > M_in] = 0
+
+    if prop == 0:
+        X = np.random.exponential(scale=scaled_out_deg, size=(d,n))
+        W = np.random.exponential(scale=scaled_in_deg, size=(d,n))
+    elif prop == 1:
+        X = np.random.exponential(scale=out_deg, size=(d,n))
+        W = np.random.exponential(scale=in_deg, size=(d,n))
+    elif prop == 2:
+        X = np.random.exponential(scale=scaled_out_deg, size=(d,n))
+        W = np.random.exponential(scale=in_deg, size=(d,n))
+    else:
+        X = np.random.exponential(scale=out_deg, size=(d,n))
+        W = np.random.exponential(scale=scaled_in_deg, size=(d,n))
+
+    E = np.random.exponential(lam, size=(n,n))
+
+    return (X.T.dot(W)+E)
+
+def weights_node_deg_rayleigh(A, d=1, sig=2, prop=1):
+    '''
+    Returns weighted adjacency matrix C (numpy array) where weights depend on
+    node-degree as Rayleigh(node_deg) or Rayleigh(1/node_deg) or Rayleigh(0)
+
+    A (square numpy array): adjacency matrix of your network
+    d (int): influence/malleability dimension
+    sig (float): scale of rayleigh distribution governing noise
+
+    prop (int): governs the dependence of the weights on the node degrees
+        prop = 0: both influence & malleability are inverse proportional to node deg
+        prop = 1: both influence & malleability are directly proportional to node deg
+        prop = 2: influence is inverse proportional to node deg, malleability directly prop
+        prop = 3: influence is directly proportional to node deg, malleability inversely prop
+    '''
+    n = A.shape[0]
+    out_deg = np.sum(A,axis=1) # array of the out-degree of each node
+    in_deg = np.sum(A,axis=0) # array of the in-degree of each node
+
+    # ensures we don't pass "infinity" as the scale in the next step
+    scaled_out_deg = 1 / out_deg
+    scaled_in_deg = 1 / in_deg
+    scaled_out_deg[scaled_out_deg == np.inf] = 0
+    scaled_in_deg[scaled_in_deg == np.inf] = 0
+
+    if prop == 0:
+        X = np.random.rayleigh(scale=(0.5*out_deg), size=(d,n))
+        W = np.random.rayleigh(scale=(0.5*in_deg), size=(d,n))
+    elif prop == 1:
+        X = np.random.rayleigh(scale=scaled_out_deg, size=(d,n))
+        W = np.random.rayleigh(scale=scaled_in_deg, size=(d,n))
+    elif prop == 2:
+        X = np.random.rayleigh(scale=(0.5*out_deg), size=(d,n))
+        W = np.random.rayleigh(scale=scaled_in_deg, size=(d,n))
+    else:
+        X = np.random.rayleigh(scale=scaled_out_deg, size=(d,n))
+        W = np.random.rayleigh(scale=(0.5*in_deg), size=(d,n))
+
+    E = np.random.rayleigh(sig, size=(n,n))
+
+    return (X.T.dot(W)+E)
+
+def weights_node_deg_unif(A, d=1, prop=1, vals=np.array([0,1])):
+    '''
+    Returns weighted adjacency matrix C (numpy array) where weights depend on
+    node-degree as Uniform(0,node_deg) or Uniform(0,1/node_deg) or Uniform(0,0)
+
+    A (square numpy array): adjacency matrix of your network
+    d (int): influence/malleability dimension
+    lam (float): rate of exponential distribution governing noise
+    prop (int): governs the dependence of the weights on the node degrees
+        prop = 0: both influence & malleability are inverse proportional to node deg
+        prop = 1: both influence & malleability are directly proportional to node deg
+        prop = 2: influence is inverse proportional to node deg, malleability directly prop
+        prop = 3: influence is directly proportional to node deg, malleability inversely prop
+    vals (numpy array): [low, high] => Noise ~ Uniform[low,high]
+    '''
+    n = A.shape[0]
+    out_deg = np.sum(A,axis=1) # array of the out-degree of each node
+    in_deg = np.sum(A,axis=0) # array of the in-degree of each node
+
+    # ensures we don't pass "infinity" as the scale in the next step
+    scaled_out_deg = 1 / out_deg
+    scaled_in_deg = 1 / in_deg
+    scaled_out_deg[scaled_out_deg == np.inf] = 0
+    scaled_in_deg[scaled_in_deg == np.inf] = 0
+
+    if prop == 0:
+        X = np.random.uniform(low=0, high=scaled_out_deg, size=(d,n))
+        W = np.random.uniform(low=0, high=scaled_in_deg, size=(d,n))
+    elif prop == 1:
+        X = np.random.uniform(low=0, high=out_deg, size=(d,n))
+        W = np.random.uniform(low=0, high=in_deg, size=(d,n))
+    elif prop == 2:
+        X = np.random.uniform(low=0, high=scaled_out_deg, size=(d,n))
+        W = np.random.uniform(low=0, high=in_deg, size=(d,n))
+    else:
+        X = np.random.uniform(low=0, high=out_deg, size=(d,n))
+        W = np.random.uniform(low=0, high=scaled_in_deg, size=(d,n))
+
+    E = np.random.uniform(low=vals[0], high=vals[1], size=(n,n))
+
+    return (X.T.dot(W)+E)
+
+def normalized_weights(C, diag=10, offdiag=8):
+    '''
+    Returns normalized weights (or normalized weighted adjacency matrix) as numpy array
+
+    C (square numpy array): weight matrix (or weighted adjacency matrix)
+    diag (float): controls the magnitude of the diagonal elements
+    offdiag (float): controls the magnitude of the off-diagonal elements
+    '''
+    n = C.shape[0]
+
+    # diagonal elements
+    C_diag = np.ones(n) * diag * np.random.rand(n)
+
+    # remove diagonal elements and normalize off-diagonal elements
+    # normalizes each column by the norm of the column (not including the diagonal element)
+    np.fill_diagonal(C, 0)
+    col_norms = np.linalg.norm(C, axis=0, ord=1)
+    col_norms = np.where(col_norms != 0, col_norms, col_norms+1)
+    C = (C / col_norms) * offdiag * np.random.rand(n)
+
+    # add back the diagonal
+    C += np.diag(C_diag)
+
+    return C
+
+def printWeights(C,alpha,filename):
+    f = open(filename, 'w')
+    n = C.shape[0]
+    print("baseline values", file=f)
+    print("n: "+str(n), file=f)
+    for i in range(n):
+        print(str(alpha[i]), file=f)
+    nnz = np.count_nonzero(C)
+    print("treatment effect weights", file=f)
+    print("edges: "+str(nnz), file=f)
+    (ind1,ind2) = np.nonzero(C)
+    for i in range(nnz):
+        a = ind1[i]
+        b = ind2[i]
+        print(str(a)+"\t"+str(b)+"\t"+str(C[a,b]), file=f)
+    f.close()
+
+def loadWeights(filename,n):
+    f = open(filename, 'r')
+    next(f)
+    next(f)
+    alpha = np.zeros(n)
+    for i in range(n):
+        line = next(f)
+        line = line.strip()
+        alpha[i] = float(line)
+    next(f)
+    next(f)
+    C = np.zeros((n,n))
+    for line in f:
+        line = line.strip()
+        ind = line.split()
+        C[int(ind[0]),int(ind[1])] = float(ind[2])
+    return (C,alpha)
+
+########################################
+# Linear Potential Outcomes Model
+########################################
+linear_pom = lambda C,alpha, z : C.dot(z) + alpha
+
+########################
+# Covariate Adjustment
+########################
+
+linear_cov_adj = lambda b,C,alpha,z,X: C.dot(z) + X.dot(b) + alpha
+#linear_cov_adj = lambda b,C,alpha,z,X : C.dot(z) + alpha
+
+def est_covariate_coeff(X, y, z, A, treatment_vec,beta):
+    if beta == 1:
+        def tc(i):
+            treatment_vec_cp = np.copy(treatment_vec)
+            neighbor_mask = (A[[i],:]==1).toarray()[0]
+            tilde_zi = z[neighbor_mask]
+            tilde_zi = np.concatenate((np.array([1]), tilde_zi))
+            # treatment_vec_cp[i] = 1
+            local_treatment_vec = treatment_vec_cp[neighbor_mask]
+            local_treatment_vec = np.concatenate((np.array([1]), local_treatment_vec))
+            # E = local_treatment_vec[:,None] @ local_treatment_vec[None,:]
+            # E[range(len(E)),range(len(E))] = local_treatment_vec
+            # E_inv = np.linalg.inv(E)
+            E_inv = np.zeros((len(local_treatment_vec), len(local_treatment_vec)))
+            E_inv[0,0] = 1 + np.sum(local_treatment_vec[1:] / (1 - local_treatment_vec[1:]))
+            E_inv[0,1:] = -1 / (1 - local_treatment_vec[1:])
+            E_inv[1:,0] = -1 / (1 - local_treatment_vec[1:])
+            E_inv[range(1,len(local_treatment_vec)), range(1,len(local_treatment_vec))] = 1 / (local_treatment_vec[1:] * (1 - local_treatment_vec[1:]))
+            temp = np.ones(E_inv.shape[0])
+            temp[0] = 0
+            # print("running me")
+            return (temp[None,:] @ E_inv @ tilde_zi[:,None])[0,0]
+    
+        tilde_coeff = np.array([tc(i) for i in range(len(z))])
+        # print(np.cov(tilde_coeff, tilde_coeff))
+        try:
+            res = np.linalg.inv(X.T @ np.diag(tilde_coeff**2) @ X) @ X.T @ np.diag(tilde_coeff**2) @ y
+            #print(res)
+            #print(np.linalg.inv(X.T @ X) @ X.T @ y)
+        except np.linalg.LinAlgError:
+            print(tilde_coeff)
+            treatment_vec_cp = np.copy(treatment_vec)
+            neighbor_mask = (A[[0],:]==1).toarray()[0]
+            tilde_zi = z[neighbor_mask]
+            tilde_zi = np.concatenate((np.array([1]), tilde_zi))
+            # treatment_vec_cp[i] = 1
+            local_treatment_vec = treatment_vec_cp[neighbor_mask]
+            local_treatment_vec = np.concatenate((np.array([1]), local_treatment_vec))
+            E = local_treatment_vec[:,None] @ local_treatment_vec[None,:]
+            E[range(len(E)),range(len(E))] = local_treatment_vec
+            E_inv = np.linalg.inv(E)
+            print(E_inv, local_treatment_vec)
+
+
+    elif beta == 2:
+        def tc_poly(i):
+            treatment_vec_cp = np.copy(treatment_vec)
+            # treatment_vec_cp[i] = 1
+            neighbor_idx = np.nonzero(A[[i],:].toarray()[0])[0].tolist()
+            # neighbor_idx.remove(i) # excluding self
+            total_num = min(beta, len(neighbor_idx))
+            choice_list = []
+            for choose_num in range(total_num + 1):
+                choice_sublist = list(combinations(neighbor_idx, choose_num))
+                choice_sublist = [list(tup) + [-1] * (total_num - choose_num) for tup in choice_sublist]
+                choice_list.extend(choice_sublist)
+            choice_list = np.array(choice_list, dtype=int)
+            choice_list_exp_a = np.repeat(choice_list[:, np.newaxis], choice_list.shape[0], axis=1)
+            choice_list_exp_b = np.repeat(choice_list[np.newaxis, :], choice_list.shape[0], axis=0)
+            choice_product = np.concatenate((choice_list_exp_a, choice_list_exp_b), axis=2)
+            # E = np.fromfunction(lambda c, r: np.product(treatment_vec_cp[np.unique(choice_product[c,r])]), (choice_product.shape[0], choice_product.shape[1]))
+            E = np.array([[np.product(treatment_vec_cp[
+                    np.unique(choice_product[c,r])[np.unique(choice_product[c,r]) != -1]
+                ]) for c in range(choice_product.shape[0])] for r in range(choice_product.shape[1])])
+            tilde_zi = np.array([np.product(z[
+                    choice_list[x][choice_list[x] != -1]
+                ]) for x in range(len(choice_list))])
+            local_treatment_vec = np.array([np.product(treatment_vec_cp[
+                    np.unique(choice_list[x])[np.unique(choice_list[x]) != -1]
+                ]) for x in range(len(choice_list))])
+            E_inv = np.linalg.inv(E)
+            return (1 - tilde_zi[None,:] @ E_inv @ tilde_zi[:,None])[0,0]
+    
+        tilde_coeff = np.array([tc_poly(i) for i in range(len(z))])
+        res = np.linalg.inv(X.T @ np.diag(tilde_coeff) @ X) @ X.T @ np.diag(tilde_coeff) @ y
+
+    else:
+        raise NotImplementedError("invalid beta value")
+    
+    return res
+
+
+def est_covariate_coeff_test(X, y, z, A, treatment_vec,beta):
+    if beta == 1:
+        def tc(i):
+            treatment_vec_cp = np.copy(treatment_vec)
+            neighbor_mask = (A[[i],:]==1).toarray()[0]
+            tilde_zi = z[neighbor_mask]
+            tilde_zi = np.concatenate((np.array([1]), tilde_zi))
+            # treatment_vec_cp[i] = 1
+            local_treatment_vec = treatment_vec_cp[neighbor_mask]
+            local_treatment_vec = np.concatenate((np.array([1]), local_treatment_vec))
+            # E = local_treatment_vec[:,None] @ local_treatment_vec[None,:]
+            # E[range(len(E)),range(len(E))] = local_treatment_vec
+            # E_inv = np.linalg.inv(E)
+            E_inv = np.zeros((len(local_treatment_vec), len(local_treatment_vec)))
+            E_inv[0,0] = 1 + np.sum(local_treatment_vec[1:] / (1 - local_treatment_vec[1:]))
+            E_inv[0,1:] = -1 / (1 - local_treatment_vec[1:])
+            E_inv[1:,0] = -1 / (1 - local_treatment_vec[1:])
+            E_inv[range(1,len(local_treatment_vec)), range(1,len(local_treatment_vec))] = 1 / (local_treatment_vec[1:] * (1 - local_treatment_vec[1:]))
+            temp = np.ones(E_inv.shape[0])
+            temp[0] = 0
+            # print("running me")
+            return (temp[None,:] @ E_inv @ tilde_zi[:,None])[0,0]
+    
+        tilde_coeff = np.array([tc(i) for i in range(len(z))])
+
+        def tc_Ztilde(i):
+            treatment_vec_cp = np.copy(treatment_vec)
+            neighbor_mask = (A[[i],:]==1).toarray()[0]
+            tilde_zi = z[neighbor_mask]
+            tilde_zi = np.concatenate((np.array([1]), tilde_zi))
+            # treatment_vec_cp[i] = 1
+            local_treatment_vec = treatment_vec_cp[neighbor_mask]
+            local_treatment_vec = np.concatenate((np.array([1]), local_treatment_vec))
+            E_inv = np.zeros((len(local_treatment_vec), len(local_treatment_vec)))
+            E_inv[0,0] = 1 + np.sum(local_treatment_vec[1:] / (1 - local_treatment_vec[1:]))
+            E_inv[0,1:] = -1 / (1 - local_treatment_vec[1:])
+            E_inv[1:,0] = -1 / (1 - local_treatment_vec[1:])
+            E_inv[range(1,len(local_treatment_vec)), range(1,len(local_treatment_vec))] = 1 / (local_treatment_vec[1:] * (1 - local_treatment_vec[1:]))
+            temp = np.ones(E_inv.shape[0])
+            temp[0] = 0
+            X_temp = np.sum(X[i,:])*np.ones(E_inv.shape[0])
+            X_temp = temp[None,:] @ (E_inv @ tilde_zi[:,None]@ tilde_zi[None,:]- np.diag(np.ones(E_inv.shape[0])))@X_temp
+            return (X_temp)
+        
+        X_modified = []
+        
+        for i in range(len(z)):
+            X_modified.append(tc_Ztilde(i))
+
+        X_modified = np.vstack(X_modified)
+        Y_weighted = np.diag(tilde_coeff) @ y
+        X_weighted = np.diag(tilde_coeff) @ X
+        X_weighted = np.hstack([X_modified,X_weighted])
+        e_U = np.zeros((X_weighted.shape[1],1))
+        e_U[-1] = 1
+        e_beta = np.zeros((3, 4))  # Initialize a 3x4 zero matrix
+        e_beta[:, :3] = np.eye(3)
+        try:
+            # res = np.linalg.inv(X_weighted.T @ X_weighted + e_U @ e_U.T 
+                                # * (np.sum(X_modified)**2-np.sum(X_modified**2))) @ ((X_weighted.T @ Y_weighted).reshape((-1,1)) + e_U * (np.sum(X_modified)*np.sum(Y_weighted)-np.sum(X_modified*Y_weighted)))
+            # res = res.reshape((-1,))
+            res = np.linalg.inv(X_weighted.T @ X_weighted) @ X_weighted.T @ Y_weighted
+            # res = np.linalg.inv(np.sum(X_weighted, axis = 0).reshape((-1,1)) @ (np.sum(X_weighted, axis = 0).reshape((-1,1))).T 
+                               #+  e_beta.T @ np.sum(np.diag(tilde_coeff) @ X, axis = 0).reshape((-1,1)) @ e_U.T 
+                                #* np.sum(X @ np.ones(X.shape[1])[:,None] 
+                                         #* (num_tr_ngb(A, z)[:,None]+1))) @ np.sum(X_weighted, axis = 0).reshape((-1,1))*np.sum(Y_weighted)
+            # res = res.reshape((-1,))
+        except np.linalg.LinAlgError:
+            print(tilde_coeff)
+            treatment_vec_cp = np.copy(treatment_vec)
+            neighbor_mask = (A[[0],:]==1).toarray()[0]
+            tilde_zi = z[neighbor_mask]
+            tilde_zi = np.concatenate((np.array([1]), tilde_zi))
+            # treatment_vec_cp[i] = 1
+            local_treatment_vec = treatment_vec_cp[neighbor_mask]
+            local_treatment_vec = np.concatenate((np.array([1]), local_treatment_vec))
+            E = local_treatment_vec[:,None] @ local_treatment_vec[None,:]
+            E[range(len(E)),range(len(E))] = local_treatment_vec
+            E_inv = np.linalg.inv(E)
+            print(E_inv, local_treatment_vec)
+    
+    return res
+
+
+
+
+
+#####################################################
+# Treatment Assignment Mechanisms (Randomized Design)
+#####################################################
+
+bernoulli = lambda n,p : (np.random.rand(n) < p) + 0
+
+def completeRD(n,treat):
+    '''
+    Returns a treatment vector using complete randomized design
+
+    n (int): number of individuals
+    p (float): fraction of individuals you want to be assigned to treatment
+    '''
+    z = np.zeros(shape=(n,))
+    z[0:treat] = np.ones(shape=(treat))
+    rng = np.random.default_rng()
+    rng.shuffle(z)
+    return z
+
+def cluster_randomization(clusters,p):
+    '''
+    # TODO:
+    '''
+    return clusters.dot(np.random.rand(clusters.shape[1]) < p)
+
+def threenet(A):
+    '''
+    # TODO:
+    '''
+    A_sq  = 1*(A.dot(A) > 0)
+    A_cubed = 1*(A.dot(A_sq) > 0)
+    vert = np.arange(A.shape[0])
+    center = []
+    while vert.size > 0:
+        ind = np.random.randint(vert.size)
+        center.append(ind)
+        neighb = np.flatnonzero(A_cubed[ind,:])
+        np.delete(vert, neighb)
+    clusters = np.zeros(A.shape[0], len(center))
+    vert = np.arange(A.shape[0])
+    for i in range(len(center)):
+        ind = center[i]
+        clusters[ind,i] = 1
+        neighb = np.flatnonzero(A[ind,:])
+        add_vert = np.intersect1d(vert, neighb, assume_unique=True)
+        for j in add_vert:
+            clusters[j,i] = 1
+        np.delete(vert, neighb)
+    for v in vert:
+        neighb_2 = np.flatnonzero(A_sq[v,:])
+        cent, comm1, comm2 = np.intersect1d(center, neighb_2, assume_unique=True, return_indices=True)
+        if len(cent) > 0:
+            clusters[v,comm1[0]] = 1
+        else:
+            neighb_3 = np.flatnonzero(A_cubed[v,:])
+            cent, comm1, comm2 = np.intersect1d(center, neighb_3, assume_unique=True, return_indices=True)
+            clusters[v,comm1[0]] = 1
+    s=np.sum(clusters,axis=1)
+    print(np.amax(s))
+    print(np.amin(s))
+    return clusters
+
+########################################
+# SNIPE Variance
+########################################
+
+def var_bound(n, p, A, C, alp, beta=1):
+    '''
+    Returns the conservative upper bound on the variance of the SNIPE(beta) estimator
+
+    n (int): size of the population
+    p (float): treatment probability
+    A (scipy sparse array): adjacency matrix
+    C (scipy sparse array): weighted adjacency matrix
+    alp (numpy array): baseline effects
+    beta (int): degree of the potential outcomes model
+    '''
+    in_deg = scipy.sparse.diags(np.array(A.sum(axis=1)).flatten(),0)  # array of the in-degree of each node
+    out_deg = scipy.sparse.diags(np.array(A.sum(axis=0)).flatten(),0)  # array of the out-degree of each node
+    in_deg = in_deg.tocsr() 
+    out_deg = out_deg.tocsr() 
+
+    d_in = in_deg.max()
+    d_out = out_deg.max()
+    temp = max(4 * (beta**2), (1 / (p*(1-p))))
+
+    if beta == 1:
+        Ymax = np.amax(scipy.sparse.diags(np.array(C.sum(axis=1)).flatten(),0) + alp)
+    else:
+        Ymax = np.amax(1 + alp)
+
+    bound = (1/n) * d_in * d_out * (Ymax**2) * (np.exp(1) * d_in * temp)**beta * (1/beta)**beta
+    return bound
+
+def var_est(n, p, y, A, z, N, M):  
+    '''
+    n : int
+        size of the population
+    p : float
+        treatment probability
+    y : numpy array
+        observations
+    A : scipy SPARSE matrix 
+        adjacency matrix where (i,j)th entry = 1 iff j's treatment affects i's outcome
+    z : numpy array
+        realized treatment assignment vector
+    N : numpy array
+        network neighbors e.g. N = [np.nonzero(A[[i],:])[1] for i in range(n)]
+    M : numpy array
+        dependency neighborhoods e.g. M = [np.nonzero(dep_neighbors[[i],:])[1] for i in range(n)] with dep_neighbors = A.dot(A.transpose())
+    '''  
+    YW = y * A.dot(z-p)/(p*(1-p))
+
+    P = np.power(np.ones(n)*p, z) + np.power(1 - np.ones(n)*p, 1 - z) - 1    # assignment probabilities
+    lP = np.log(P)     # log of assignment probabilities
+
+    PY2W2 = np.exp(A.dot(lP)) * YW**2 
+
+    T1,T2 = 0,0
+    for i in range(n):
+        T1 += YW[i] * YW[M[i]].dot(1 - np.exp((A[[i],:]*A[M[i],:]).dot(lP)))
+        T2 += PY2W2[i] * sum([2**len(N[j]) - 2**len(np.setdiff1d(N[j],N[i])) for j in M[i]])
+
+    return (T1+T2)/n**2
+
+########################################
+# Estimators
+########################################
+
+def SNIPE_deg1(n, y, w):
+    '''
+    Returns an estimate of the TTE using SNIPE(beta)
+
+    n (int): number of individuals
+    p (float): treatment probability
+    y (numpy array?): observations
+    A (square numpy array): network adjacency matrix
+    z (numpy array): treatment vector
+    '''
+    return 1/n * y.dot(w)
+
+def SNIPE_deg1_cov_adj(n, y, w, X, A, z, treatment_vec):
+    # Xtilde_1 = np.hstack([X, np.ones(n)[:,None] * X, prop_tr_ngb(n, A, np.ones(n))[:,None] * X, num_tr_ngb(n, A, np.ones(n))[:,None] * X])
+    # Xtilde_0 = np.hstack([X, np.zeros(n)[:,None] * X, prop_tr_ngb(n, A, np.zeros(n))[:,None] * X, num_tr_ngb(n, A, np.zeros(n))[:,None] * X])
+    # Xtilde_1 = np.hstack([X, np.ones(n)[:,None] * X, prop_tr_ngb(n, A, np.ones(n))[:,None] * X])
+    # Xtilde_0 = np.hstack([X, np.zeros(n)[:,None] * X, prop_tr_ngb(n, A, np.zeros(n))[:,None] * X])
+    #return 1/n * y.dot(w)+np.mean(Xtilde_1.dot(b_est) - Xtilde_0.dot(b_est))
+    def tc_SNIPE_deg1_cov_adj1(i):
+        treatment_vec_cp = np.copy(treatment_vec)
+        neighbor_mask = (A[[i],:]==1).toarray()[0]
+        tilde_zi = z[neighbor_mask]
+        treatment_vec_cp[i] = 1
+        local_treatment_vec = treatment_vec_cp[neighbor_mask]
+        E = local_treatment_vec[:,None] @ local_treatment_vec[None,:]
+        E[range(len(E)),range(len(E))] = local_treatment_vec
+        E_inv = np.linalg.inv(E)
+        return (1 - local_treatment_vec[None,:] @ E_inv @ tilde_zi[:,None])[0,0]
+    
+    def tc_SNIPE_deg1_cov_adj2(i):
+        treatment_vec_cp = np.copy(treatment_vec)
+        neighbor_mask = (A[[i],:]==1).toarray()[0]
+        tilde_zi = z[neighbor_mask]
+        treatment_vec_cp[i] = 1
+        local_treatment_vec = treatment_vec_cp[neighbor_mask]
+        E = local_treatment_vec[:,None] @ local_treatment_vec[None,:]
+        E[range(len(E)),range(len(E))] = local_treatment_vec
+        E_inv = np.linalg.inv(E)
+        A_temp = local_treatment_vec[None,:] @ E_inv @ tilde_zi[:,None]
+        return ((A_temp)[0,0]/(1 + A_temp)[0,0])
+    
+    tilde_coeff1 = np.array([tc_SNIPE_deg1_cov_adj1(i) for i in range(len(z))])
+    beta_est = np.linalg.inv(X.T @ np.diag(tilde_coeff1) @ X) @ X.T @ np.diag(tilde_coeff1) @ y
+    tilde_coeff2 = np.array([tc_SNIPE_deg1_cov_adj2(i) for i in range(len(z))])
+    Ztilde_C = np.diag(tilde_coeff2) @ (y - X @ beta_est)
+    X
+    
+
+def est_us_clusters(n, p, y, A, z, clusters=np.array([])):
+    '''
+    TODO
+
+    n (int): number of individuals
+    p (float): treatment probability
+    y (TODO): TODO
+    A (square numpy array): network adjacency matrix
+    z (numpy array): treatment vector
+    cluster (numpy array): TODO
+    '''
+    if clusters.size == 0:
+        z_c = z
+        A_c = A
+    else:
+        z_c = 1*(np.sum(np.multiply(z.reshape((n,1)),clusters),axis=0)>0)
+        A_c = 1*(A.dot(clusters) >0)
+    zz = z_c/p - (1-z_c)/(1-p)
+    return 1/n * y.dot(A_c.dot(zz))
+
+def est_ols(n, p, y, A, z):
+    '''
+    Returns an estimate of the TTE using OLS (regresses over proportion of neighbors treated)
+    Uses numpy.linalg.solve and normal equations
+
+    n (int): number of individuals
+    p (float): treatment probability
+    y (numpy array): observed outcomes
+    A (square numpy array): network adjacency matrix
+    z (numpy array): treatment vector
+    '''
+    M = np.ones((n,3))
+    M[:,1] = z
+    M[:,2] = (A.dot(z) - z) / ((np.array(A.sum(axis=1))-1)+1e-10).flatten()
+
+    v = np.linalg.solve(M.T.dot(M),M.T.dot(y))
+    return v[1]+v[2]
+
+def est_ols_gen(y, A, z):
+    '''
+    Returns an estimate of the TTE using OLS (regresses over proportion of neighbors treated)
+    Uses numpy.linalg.lstsq without the use of the normal equations
+
+    y (numpy array): observed outcomes
+    A (square numpy array): network adjacency matrix
+    z (numpy array): treatment vector
+    '''
+    n = A.shape[0]
+    X = np.ones((n,3))
+    X[:,1] = z
+    X[:,2] = (A.dot(z) - z) / (np.array(A.sum(axis=1)).flatten()-1+1e-10)
+
+    v = np.linalg.lstsq(X,y,rcond=None)[0] # solve for v in y = Xv
+    return v[1]+v[2]
+
+def est_ols_treated(y, A, z):
+    '''
+    Returns an estimate of the TTE using OLS (regresses over number neighbors treated)
+    Uses numpy.linalg.lstsq without the use of the normal equations
+
+    y (numpy array): observed outcomes
+    A (square numpy array): network adjacency matrix
+    z (numpy array): treatment vector
+    '''
+    n = A.shape[0]
+    X = np.ones((n,3))
+    X[:,1] = z
+    X[:,2] = A.dot(z) - z
+
+    v = np.linalg.lstsq(X,y,rcond=None)[0] # solve for v in y = Xv
+    return v[1]+(v[2]*(np.sum(A)-n)/n)
+
+def est_ols_cy(n, p, y, A, z):
+    '''
+    Returns an estimate of the TTE using OLS (regresses over proportion of neighbors treated)
+    Uses numpy.linalg.solve and normal equations
+
+    n (int): number of individuals
+    p (float): treatment probability
+    y (numpy array): observed outcomes
+    A (square numpy array): network adjacency matrix
+    z (numpy array): treatment vector
+    '''
+
+    M = np.ones((n,4))
+    treated_neighb = (A.dot(z) - z) / ((np.array(A.sum(axis=1))-1)+1e-10).flatten()
+    M[:,0] = z
+    M[:,1] = z * treated_neighb
+    M[:,2] = 1-z 
+    M[:,3] = (1-z) * treated_neighb
+
+    v = np.linalg.solve(M.T.dot(M),M.T.dot(y))
+    return v[0]+v[1]
+
+def est_ols_gen_cy(y, A, z):
+    '''
+    Returns an estimate of the TTE using OLS (regresses over proportion of neighbors treated)
+    Uses numpy.linalg.lstsq without the use of the normal equations
+
+    y (numpy array): observed outcomes
+    A (square numpy array): network adjacency matrix
+    z (numpy array): treatment vector
+    '''
+
+    n = A.shape[0]
+    X = np.ones((n,4))
+    treated_neighb = (A.dot(z) - z) / ((np.array(A.sum(axis=1))-1)+1e-10).flatten()
+    X[:,0] = z
+    X[:,1] = z * treated_neighb
+    X[:,2] = 1-z 
+    X[:,3] = (1-z) * treated_neighb
+
+    v = np.linalg.lstsq(X,y,rcond=None)[0] # solve for v in y = Xv
+    return v[0]+v[1]
+
+def est_ols_treated_cy(y, A, z):
+    '''
+    Returns an estimate of the TTE using OLS (regresses over number neighbors treated)
+    Uses numpy.linalg.lstsq without the use of the normal equations
+
+    y (numpy array): observed outcomes
+    A (square numpy array): network adjacency matrix
+    z (numpy array): treatment vector
+    '''
+
+    n = A.shape[0]
+    X = np.ones((n,4))
+    treated_neighb = (A.dot(z) - z)
+    X[:,0] = z
+    X[:,1] = z * treated_neighb
+    X[:,2] = 1-z 
+    X[:,3] = (1-z) * treated_neighb
+
+    v = np.linalg.lstsq(X,y,rcond=None)[0] # solve for v in y = Xv
+    return v[0]+(v[1]*(np.sum(A)-n)/n)
+
+
+def diff_in_means_naive(y, z):
+    '''
+    Returns an estimate of the TTE using difference in means
+    (mean outcome of individuals in treatment) - (mean outcome of individuals in control)
+
+    y (numpy array): observed outcomes
+    z (numpy array): treatment vector
+    '''
+    return y.dot(z)/np.sum(z) - y.dot(1-z)/np.sum(1-z)
+
+def diff_in_means_fraction(n, y, A, z, tol):
+    '''
+    Returns an estimate of the TTE using weighted difference in means where 
+    we only count neighborhoods with at least tol fraction of the neighborhood being
+    assigned to treatment or control
+
+    n (int): number of individuals
+    y (numpy array): observed outcomes
+    A (square numpy array): network adjacency matrix
+    z (numpy array): treatment vector
+    tol (float): neighborhood fraction treatment/control "threshhold"
+    '''
+    z = np.reshape(z,(n,1))
+    treated = 1*(A.dot(z)-1 >= tol*(A.dot(np.ones((n,1)))-1))
+    treated = np.multiply(treated,z).flatten()
+    control = 1*(A.dot(1-z)-1 >= tol*(A.dot(np.ones((n,1)))-1))
+    control = np.multiply(control,1-z).flatten()
+
+    est = 0
+    if np.sum(treated) > 0:
+        est = est + y.dot(treated)/np.sum(treated)
+    if np.sum(control) > 0:
+        est = est - y.dot(control)/np.sum(control)
+    return est
+
+#Horvitz-Thompson 
+def est_ht(n, p, y, A, z, clusters=np.array([])):
+  if clusters.size == 0:
+    zz = np.prod(np.tile(z/p,(n,1)),axis=1, where=A==1) - np.prod(np.tile((1-z)/(1-p),(n,1)),axis=1, where=A==1)
+  else:
+    deg = np.sum(clusters,axis=1)
+    wt_T = np.power(p,deg)
+    wt_C = np.power(1-p,deg)
+    zz = np.multiply(np.prod(A*z,axis=1),wt_T) - np.multiply(np.prod(A*(1-z),axis=1),wt_C)
+  return 1/n * y.dot(zz)
+
+#Hajek
+def est_hajek(n, p, y, A, z, clusters=np.array([])): 
+  if clusters.size == 0:
+    zz_T = np.prod(np.tile(z/p,(n,1)), axis=1, where=A==1)
+    zz_C = np.prod(np.tile((1-z)/(1-p),(n,1)), axis=1, where=A==1)
+  else:
+    deg = np.sum(clusters,axis=1)
+    wt_T = np.power(p,deg)
+    wt_C = np.power(1-p,deg)
+    zz_T = np.multiply(np.prod(A*z,axis=1),wt_T) 
+    zz_C = np.multiply(np.prod(A*(1-z),axis=1),wt_C)
+  all_ones = np.ones(n)
+  est_T = 0
+  est_C=0
+  if all_ones.dot(zz_T) > 0:
+    est_T = y.dot(zz_T) / all_ones.dot(zz_T)
+  if all_ones.dot(zz_C) > 0:
+    est_C = y.dot(zz_C) / all_ones.dot(zz_C)
+  return est_T - est_C
+      
+
+def expectation_product(S, T, U, p):
+    '''
+    compute the expectation of the product term, taking the form
+    E[ \prod_{j\in S}(z_j-p_j)/p_j(1-p_j) \prod_{k\in T}(z_k-p_k)/p_k(1-p_k) \prod_{r\in U}z_r ]
+    S, T, U: sets
+    p: treatment probability, scalar from 0 to 1
+    '''
+    tot = S | T | U
+    expectation = 1.
+    for t in tot:
+        if t in S & T & U:
+            expectation *= 1 / p
+        elif t in S & T - U:
+            expectation *= 1 / (p * (1-p))
+        elif t in S - T - U:
+            expectation *= 0
+        elif t in T - S - U:
+            expectation *= 0
+        elif t in U - S - T:
+            expectation *= p
+    return expectation
+
+def compute_component_B_deg1(X, A, beta, p):
+    assert beta == 1
+    n = len(X)
+    ret = np.zeros((X.shape[1], X.shape[1]))
+    for i in range(n):
+        for ip in np.unique(A[:,A[[i],:].indices].nonzero()[0]):
+            ret += X[i][:, None] @ X[ip][None, :] * 1 / (p * (1 - p)) * len(set(A[[i],:].indices) & set(A[[ip],:].indices)) / n ** 2
+    return ret
+
+
+def compute_component_D_deg1(X, A, beta, p, c_est_list):
+    '''
+    c_est_list: a list of length n, the i-th element of the list is a vector (\hat{c}_{i,S})_S
+    '''
+    #t1 = time.time()
+    assert beta == 1
+    n = len(X)
+    ret = np.zeros((X.shape[1],))
+    for i in range(n):
+        sp_to_sp_id = {neighbor : index for index, neighbor in enumerate(A[[i],:].indices)}
+        for ip in np.unique(A[:,A[[i],:].indices].nonzero()[0]):
+            c_est_null = (1-p) * c_est_list[i][0] + p * sum(c_est_list[i])
+            ret += X[ip] * c_est_null * len(set(A[[i],:].indices) & set(A[[ip],:].indices)) * 2 / n ** 2
+            for sp in set(A[[i],:].indices) & set(A[[ip],:].indices):
+                sp_id = sp_to_sp_id[sp]
+                ret += X[ip] * c_est_list[i][sp_id + 1] * (1-2*p) * 2 / n ** 2
+    #t2 = time.time()
+    #print("component D", t2-t1)
+    return ret/ (p * (1 - p))
+
+
+def combination_expectation(p, N_i, N_ip, input_list):
+    Ni_id = {neighbor : index for index, neighbor in enumerate(N_i)}
+    Nip_id = {neighbor : index for index, neighbor in enumerate(N_ip)}
+    ret = np.ones((len(set(N_i) & set(N_ip)),))
+    mask_N_i = np.array([True if idx in set(N_i) & set(N_ip) else False for idx in N_i])
+    mask_N_ip = np.array([True if idx in set(N_i) & set(N_ip) else False for idx in N_ip])
+    for tup in input_list:
+        coeff, source = tup
+        # print(coeff, source, mask_N_i, mask_N_ip)
+        if source == 0:
+            ret *= coeff[mask_N_i]
+        elif source == 1:
+            ret *= coeff[mask_N_ip]
+        else:
+            raise ValueError
+    order = len(input_list)
+    ret = np.sum(ret) * ((-p) ** order * (1 - p) + (1 - p) ** order * p)
+    if order <= 3:
+        return ret
+    elif order == 4:
+        extra = 0.
+        coeff_alpha, coeff_beta, coeff_gamma, coeff_delta = input_list[0][0], input_list[1][0], input_list[2][0], input_list[3][0]
+        for j_id, j in enumerate(N_i):
+            for k_id, k in enumerate(N_ip):
+                if j != k:
+                    extra += coeff_alpha[j_id] * coeff_gamma[j_id] * coeff_beta[k_id] * coeff_delta[k_id]
+        for j in set(N_i) & set(N_ip):
+            for k in set(N_i) & set(N_ip):
+                if j != k:
+                    extra += coeff_alpha[Ni_id[j]] * coeff_beta[Nip_id[j]] * coeff_gamma[Ni_id[k]] * coeff_delta[Nip_id[k]]
+                    extra += coeff_alpha[Ni_id[j]] * coeff_delta[Nip_id[j]] * coeff_beta[Nip_id[k]] * coeff_gamma[Ni_id[k]]
+        extra *= ((-p) ** 2 * (1 - p) + (1 - p) ** 2 * p) ** 2
+        return ret + extra
+    else:
+        raise ValueError
+
+
+def get_c_est(A, z, y, treatment_vec, i):
+    treatment_vec_cp = np.copy(treatment_vec)
+    neighbor_mask = (A[[i],:]==1).toarray()[0]
+    tilde_zi = z[neighbor_mask]
+    tilde_zi = np.concatenate((np.array([1]), tilde_zi))
+    local_treatment_vec = treatment_vec_cp[neighbor_mask]
+    local_treatment_vec = np.concatenate((np.array([1]), local_treatment_vec))
+    E_inv = np.zeros((len(local_treatment_vec), len(local_treatment_vec)))
+    E_inv[0,0] = 1 + np.sum(local_treatment_vec[1:] / (1 - local_treatment_vec[1:]))
+    E_inv[0,1:] = -1 / (1 - local_treatment_vec[1:])
+    E_inv[1:,0] = -1 / (1 - local_treatment_vec[1:])
+    E_inv[range(1,len(local_treatment_vec)), range(1,len(local_treatment_vec))] = 1 / (local_treatment_vec[1:] * (1 - local_treatment_vec[1:]))
+    return (E_inv @ tilde_zi[:,None] * y[i]).reshape(-1)
+
+def SNIPE_beta_adjust_test(n, y, X, w, components):
+    B, D = components
+    gamma = np.linalg.inv(B) @ D / 2
+    # gamma = np.ones((X.shape[1]))
+    Xest = X*w.reshape(-1,1)
+    est = np.sum(y*w) -  np.sum(Xest @ gamma)
+    return est/n
+
+def SNIPE_beta_Lin(n, y, X, w, z, p):
+    n0, n1 = np.sum(1-z), np.sum(z)
+
+    X0 = np.hstack((np.ones((n0, 1)), X[z == 0, :]))
+    X1 = np.hstack((np.ones((n1, 1)), X[z == 1, :]))
+    
+    gamma0 = np.linalg.inv(X0.T @ X0) @ X0.T @ (y[z == 0])
+    gamma1 = np.linalg.inv(X1.T @ X1) @ X1.T @ (y[z == 1])
+    Xest = np.sum(z*(X @ (gamma1[1:])))/n1 - np.sum((1-z)*(X @ (gamma0[1:])))/n0
+    Yest = y.dot(z)/n1 - y.dot(1-z)/n0
+    est = Yest -  np.sum(Xest)
+    return est
