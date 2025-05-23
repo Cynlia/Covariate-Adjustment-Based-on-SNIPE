@@ -48,7 +48,7 @@ def main(argv):
     G = 1         # number of graphs we want to average over (10)
     T = 1          # number of trials per graph (500)
 
-    graphStr = "er"
+    graphStr = "srgg"
 
     for beta in [2]:
 
@@ -227,16 +227,12 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
         
     
         alpha = rand_wts[:,0].flatten()
-        if covariate_adj:
-            if beta == 1: 
-                C = ncls.simpleXWeights_old(A, X, X_c_coeff, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
-                #C = ncps.simpleWeights_deg2(X_uncentered, A, diag, offdiag, rand_diag=np.array([]), rand_offdiag=np.array([]))
-            if beta == 2:
-                C_linear = ncls.simpleXWeights_old(A, X, X_c_coeff, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
-                C = ncps.simpleWeights_deg2(X, A, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
-        else:
-            C = ncls.simpleWeights(A, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
-
+        
+        if beta == 1: 
+            C = ncls.simpleXWeights_old(A, X, X_c_coeff, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
+        if beta == 2:
+            C_linear = ncls.simpleXWeights_old(A, X, X_c_coeff, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
+            C = ncps.simpleWeights_deg2(X, A, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
 
         if beta == 1:
             fy = lambda z: ncls.linear_cov_adj(b,C,alpha,z,X)
@@ -264,10 +260,6 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
         estimators.append(lambda y,z,w: ncls.diff_in_means_naive(y,z))
         alg_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', 'Lin\'s', 'DM']
 
-
-        N = [np.nonzero(A[[i],:])[1] for i in range(n)]  # neighbors
-        dep_neighbors = A.dot(A.transpose())
-        M = [np.nonzero(dep_neighbors[[i],:])[1] for i in range(n)] # dependencies
         
         if beta == 1:
             component_B = ncls.compute_component_B_deg1(X, A, beta, p)
@@ -292,10 +284,7 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
                 c_est_list = [ncps.get_c_est_deg2(A, z, y, treatment_vec, p, i) for i in range(n)]
                 component_D = ncps.compute_component_D_deg2(X, A, p, c_est_list)
                 
-            components = (component_B, component_D)
-            
-            var_est_snipe = ncls.var_est(n, p, y, A, z, N, M)
-            dict_base.update({'Variance_Estimate_SNIPE': var_est_snipe})
+            components = (component_B, component_D)            
 
             for ind in range(len(estimators)):
                 est = estimators[ind](y,z,w)
