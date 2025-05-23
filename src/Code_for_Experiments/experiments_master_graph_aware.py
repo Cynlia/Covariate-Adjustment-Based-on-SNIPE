@@ -20,8 +20,6 @@ from functools import partial
 #num_cores = int(os.getenv('SLURM_CPUS_PER_TASK'))
 import warnings
 warnings.filterwarnings("ignore")
-from scipy.linalg import cholesky
-from scipy.linalg import toeplitz
 
 
 
@@ -40,35 +38,6 @@ save_path_graphs = 'graphs/'
 covariate_adj = True
 covariate_dim = 3
 
-do_parallel = True
-
-def subroutine_r(G, T, n, p, diag, beta, loadGraphs, r):
-    print('ratio: {}'.format(r))
-    startTime3 = time.time()
-    ret = run_experiment(G,T,n,p,r,"er",diag,beta,loadGraphs)
-    executionTime = (time.time() - startTime3)
-    # print('Runtime (in seconds) for r = {} step: {}'.format(r,executionTime),file=f)
-    print('Runtime (in seconds) for r = {} step: {}'.format(r,executionTime))
-    return ret
-
-
-def subroutine_p(G, T, n, r, diag, beta, loadGraphs, p):
-    print('ratio: {}'.format(r))
-    startTime3 = time.time()
-    ret = run_experiment(G,T,n,p,r,"er",diag,beta,loadGraphs)
-    executionTime = (time.time() - startTime3)
-    # print('Runtime (in seconds) for r = {} step: {}'.format(r,executionTime),file=f)
-    print('Runtime (in seconds) for r = {} step: {}'.format(r,executionTime))
-    return ret
-
-def subroutine_n(G, T, p, r, diag, beta, loadGraphs, n):
-    print('ratio: {}'.format(r))
-    startTime3 = time.time()
-    ret = run_experiment(G,T,n,p,r,"er",diag,beta,loadGraphs)
-    executionTime = (time.time() - startTime3)
-    # print('Runtime (in seconds) for r = {} step: {}'.format(r,executionTime),file=f)
-    print('Runtime (in seconds) for r = {} step: {}'.format(r,executionTime))
-    return ret
 
 def main(argv):
     if len(argv) > 1:
@@ -77,14 +46,9 @@ def main(argv):
         beta = 2
 
     G = 1         # number of graphs we want to average over (10)
-    T = 30          # number of trials per graph (500)
+    T = 1          # number of trials per graph (500)
 
     graphStr = "er"
-
-    if graphStr == "sw":
-        loadGraphs = True
-    else:
-        loadGraphs = False
 
     for beta in [2]:
 
@@ -101,18 +65,17 @@ def main(argv):
             pct = 1
 
             results = []
-            if graphStr == "sw":
-                sizes = np.array([16, 24, 32, 48, 64, 96])
-            else:
-                sizes = np.array([10000, 6000, 7000, 8000, 9000, 10000]) #    [500, 600, 700, 800, 900]
-                #sigmas = np.array([0.025, 0.024, 0.023, 0.022, 0.021, 0.02])
-                sigmas = np.array([0.014, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02])
+            sizes = np.array([5000, 6000, 7000, 8000, 9000, 10000]) #    [500, 600, 700, 800, 900]
+            if beta == 1:
+                sigmas = np.array([0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02])
+            elif beta == 2:
+                sigmas = np.array([0.02, 0.018, 0.016, 0.016, 0.014, 0.014])
 
             for n, sigma in zip(sizes, sigmas):
                 print("n = {}".format(n))
                 startTime2 = time.time()
 
-                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta,loadGraphs))
+                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta))
 
                 executionTime = (time.time() - startTime2)
                 print('Runtime (in seconds) for n = {} step: {}'.format(n,executionTime),file=f)
@@ -147,7 +110,7 @@ def main(argv):
                 print("Treatment Probability: {}".format(p))
                 startTime3 = time.time()
 
-                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta,loadGraphs))
+                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta))
 
                 executionTime = (time.time() - startTime3)
                 print('Runtime (in seconds) for p = {} step: {}'.format(p,executionTime),file=f)
@@ -181,7 +144,7 @@ def main(argv):
                 print('ratio: {}'.format(r))
                 startTime3 = time.time()
 
-                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta,loadGraphs))
+                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta))
 
                 executionTime = (time.time() - startTime3)
                 print('Runtime (in seconds) for r = {} step: {}'.format(r,executionTime),file=f)
@@ -214,7 +177,7 @@ def main(argv):
                 print('percent: {}'.format(pct))
                 startTime3 = time.time()
 
-                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta,loadGraphs))
+                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta))
 
                 executionTime = (time.time() - startTime3)
                 print('Runtime (in seconds) for pct = {} step: {}'.format(r,executionTime),file=f)
@@ -232,7 +195,7 @@ def main(argv):
 
         f.close()
 
-def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2,loadGraphs=False):
+def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
     
     offdiag = r*diag   # maximum norm of indirect effect
 
@@ -254,37 +217,14 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2,loadGraphs=False):
         graph_rep = str(g)
         dict_base.update({'Graph':sz+graph_rep})
 
-        if loadGraphs:
-            if graphStr == "sw":
-                A = ncls.loadGraph(save_path_graphs+'SW'+str(n)+'.txt', n*n, True)
-                n = n*n
-                dict_base.update({'n':n})
-                rand_wts = np.random.rand(n,3)
-            else:
-                # load weighted graph
-                name = save_path_graphs + graphStr + sz + graph_rep
-                A = scipy.sparse.load_npz(name+'-A.npz')
-                rand_wts = np.load(name+'-wts.npy')
-        else:
-            if graphStr == "CON-prev":
-                A = ncls.config_model_nx_prev(n,1000*n)
-            if graphStr == "CON":
-                A = ncls.config_model_nx(n)
-            elif graphStr == "er":
-                #deg = 10 # default 10
-                #A = ncls.erdos_renyi(n,deg/n)
-                A = ncls.soft_RGG(X,n,sigma)
-            elif graphStr == "sw-ring":
-                A = ncls.small_world(n,10,0.1)
-            elif graphStr == "SBM":
-                clusterSize = int(n/10)
-                n = 10*clusterSize
-                prob = 0.02 * np.random.beta(0.5, 0.5, (10, 10)) + np.diagflat(0.08 * np.random.beta(0.5, 0.5, (10, 1)))
-                A = ncls.SBM(clusterSize, 10*prob/n)
-            rand_wts = np.random.rand(n,3)
+        if graphStr == "er":
+            deg = 10 # default 10
+            A = ncls.erdos_renyi(n,deg/n)
+        elif graphStr == "srgg":
+            A = ncls.soft_RGG(X,n,sigma)
+
+        rand_wts = np.random.rand(n,3)
         
-        #print(A)
-        print(np.sum(A)/n)
     
         alpha = rand_wts[:,0].flatten()
         if covariate_adj:
@@ -298,27 +238,15 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2,loadGraphs=False):
             C = ncls.simpleWeights(A, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
 
 
-
-
         if beta == 1:
-            if not covariate_adj:
-                fy = lambda z: ncls.linear_pom(C,alpha,z)
-            else:
-                fy = lambda z: ncls.linear_cov_adj(b,C,alpha,z,X)
+            fy = lambda z: ncls.linear_cov_adj(b,C,alpha,z,X)
         else:
-            if not covariate_adj:
-                fy = ncps.ppom(beta, C, alpha)
-            else:
-                #fy = ncps.ppom_cov_adj(beta, C, alpha, X, b)
-                fy = ncps.ppom_cov_adj(beta, C, alpha, X, b, C_linear)
+            fy = ncps.ppom_cov_adj(beta, C, alpha, X, b, C_linear)
 
         # compute and print true TTE
         TTE = 1/n * np.sum((fy(np.ones(n)) - fy(np.zeros(n))))
         dict_base.update({'TTE':TTE})
 
-        # Compute (upper) variance bound
-        #bound = ncls.var_bound(n, p, A, C, alpha, beta)
-        #dict_base.update({'Variance_Bound_SNIPE':bound})
 
         ####### Estimate ########
         estimators = []
