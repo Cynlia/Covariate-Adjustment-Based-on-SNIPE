@@ -98,7 +98,7 @@ The following parts are **original contributions** of this project:
 This project is developed based on the following open-source repository:
 
 - [mayscortez/low-order-unitRD](https://github.com/mayscortez/low-order-unitRD):
-  We adapted core components of their implementation—especially the experimental design, data generation, and baseline algorithms. Several files in `src/` and `scripts/` are modified versions of their code to fit the objectives of our study.
+  We adapted some components of their implementation, especially the experimental design and data generation. Several files in `src/` are modified versions of their code to fit the objectives of our study.
 
 We sincerely thank the original authors for making their code publicly available. Please refer to the respective repositories for licensing terms.
 
