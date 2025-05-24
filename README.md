@@ -95,10 +95,11 @@ The following parts are **original contributions** of this project:
 
 ## 🙏 Code Attribution
 
-This project is built upon or adapted from the following open-source repositories:
+This project is developed based on the following open-source repository:
 
-- [Original DR-Learner Repo](https://github.com/original-author/original-repo) – Used as a base for `src/dr_learner.py`
-- [Simulation Framework](https://github.com/other-author/other-repo) – Adapted for our experiment design in `scripts/` and `data/`
+- [mayscortez/low-order-unitRD](https://github.com/mayscortez/low-order-unitRD):  
+
+We adapted core components of their implementation—especially the experimental design, data generation, and baseline algorithms. Several files in `src/` and `scripts/` are modified versions of their code to fit the objectives of our study.
 
 We sincerely thank the original authors for making their code publicly available. Please refer to the respective repositories for licensing terms.
 
