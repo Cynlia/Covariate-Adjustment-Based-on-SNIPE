@@ -23,13 +23,14 @@ Published at [Conference/Journal Name], [Year]
 ├── data/                    # Data scripts or instructions
 │   └── README.md
 ├── src/                     # Core method implementations
-│   ├── __init__.py
-│   ├── dr_learner.py
-│   └── our_method.py
-├── scripts/                 # Experiment runners and plotting scripts
-│   ├── run_experiment.sh
-│   └── plot_results.py
-├── notebooks/               # Jupyter notebooks for demo or figures
+│   ├── Codes_for_Experiments/
+│       ├── experiments_master_graph_aware.py
+│       ├── nci_linear_setup.py
+│       └── nci_polynomial_setup.py
+│   └── Codes_for_Plots/
+│       ├── master_plots_graph_aware_MSE.py
+│       └── master_plots_graph_aware.py 
+├── notebooks/               # Jupyter notebooks for demo
 │   └── demo.ipynb
 ├── results/                 # Output files (figures, logs)
 │   └── figures/
