@@ -56,6 +56,28 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     # '#2077b4' - blue; '#ff7f0e' - orange; '#2ba02c' - green; '#d62728' - red; '#9468bd' - purple
     sns.lineplot(x=x_var, y='biassq', hue='Estimator', style='Estimator', data=df2, legend='brief', markers=True, style_order=est_names, hue_order= est_names, palette=['#ff7f0e', '#2ba02c', '#9468bd', '#d62728', '#2077b4', '#FFC0CB'])
 
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
+    # Add zoomed-in inset
+    axins = inset_axes(ax, width="95%", height="125%", loc='upper left', 
+                   bbox_to_anchor=(0, 0.5, .5, .5), bbox_transform=ax.transAxes)
+
+    sns.lineplot(
+        x=x_var, y='biassq', hue='Estimator', style='Estimator',
+        data=df2.reset_index(),
+        hue_order=est_names, style_order=est_names,
+        palette=['#ff7f0e', '#2ba02c', '#9468bd', '#d62728', '#2077b4', '#FFC0CB'], markers=False, ax=axins, legend=False
+    )
+
+    # Adjust zoom region here
+    axins.set_xlim(9000, 10000)
+    axins.set_ylim(0, 20)
+    axins.set_xticks([])
+    axins.set_yticks([])
+    axins.set_xlabel("")
+    axins.set_ylabel("")
+
+    mark_inset(ax, axins, loc1=1, loc2=3, fc="none", ec="gray")
+    
     if model == 'deg1':
         pass
         ax.set_ylim(0,50)
