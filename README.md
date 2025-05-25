@@ -29,7 +29,8 @@ Published at [Conference/Journal Name], [Year]
 │       └── nci_polynomial_setup.py
 │   └── Codes_for_Plots/
 │       ├── master_plots_graph_aware_MSE.py
-│       └── master_plots_graph_aware.py 
+│       └── master_plots_graph_aware.py
+│   ├── OutFiles/            # Output files (figures, csvs)
 ├── notebooks/               # Jupyter notebooks for demo
 │   └── demo.ipynb
 ├── results/                 # Output files (figures, logs)
