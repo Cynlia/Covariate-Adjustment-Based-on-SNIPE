@@ -33,8 +33,6 @@ Published at [Conference/Journal Name], [Year]
 │   ├── OutFiles/            # Output files (figures, csvs)
 ├── notebooks/               # Jupyter notebooks for demo
 │   └── demo.ipynb
-├── results/                 # Output files (figures, logs)
-│   └── figures/
 └── paper/                   # Optional copy of the paper
     └── your_paper.pdf
 ```
