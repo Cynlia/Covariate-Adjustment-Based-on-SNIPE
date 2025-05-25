@@ -247,13 +247,13 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
         ####### Estimate ########
         estimators = []
         if beta == 1:
-            estimators.append(lambda y,z,w: ncps.SNIPE_beta_adjust(n, y, X, w))
-            estimators.append(lambda y,z,w: ncls.SNIPE_beta_adjust_test(n, y, X, w, components))
+            estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))
+            estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))
             estimators.append(lambda y,z,w: ncls.SNIPE_deg1(n,y,w))
             estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(n, y, X, w, z, p))
         else:
-            estimators.append(lambda y,z,w: ncps.SNIPE_beta_adjust(n, y, X, w))
-            estimators.append(lambda y,z,w: ncls.SNIPE_beta_adjust_test(n, y, X, w, components))
+            estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))
+            estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))
             estimators.append(lambda y,z,w: ncps.SNIPE_beta(n,y,w))
             estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(n, y, X, w, z, p))
             
@@ -262,9 +262,9 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
 
         
         if beta == 1:
-            component_B = ncls.compute_component_B_deg1(X, A, beta, p)
+            component_B = ncls.compute_component_B_deg1(X, A, p)
         else:
-            component_B = ncps.compute_component_B_deg2(X, A, beta, p)
+            component_B = ncps.compute_component_B_deg2(X, A, p)
 
 
         for i in range(T):
@@ -275,7 +275,7 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
             if beta == 1:
                 treatment_vec = p * np.ones((n,))
                 c_est_list = [ncls.get_c_est(A, z, y, treatment_vec, i) for i in range(n)]
-                component_D = ncls.compute_component_D_deg1(X, A, beta, p, c_est_list)
+                component_D = ncls.compute_component_D_deg1(X, A, p, c_est_list)
                 zz = z/p - (1-z)/(1-p)
                 w = A.dot(zz)
             else:

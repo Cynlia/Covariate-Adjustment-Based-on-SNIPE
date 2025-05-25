@@ -257,47 +257,13 @@ def poly_regression_num_cy(beta, y, A, z):
   return TTE_hat
 
 
-def SNIPE_beta_adjust(n, y, X, w):
-  # Xest = np.hstack([(np.sum(X, axis=1)*wx).reshape(-1,1), X*w.reshape(-1,1)])
-  # X_c = X - np.mean(X, axis=0)
-  #Xest = (np.hstack([np.ones((X.shape[0], 1)), X]))*w.reshape(-1,1)
+def Reg_beta(n, y, X, w):
   Xest = X*w.reshape(-1,1)
   Yest = y*w
   thetahat = np.linalg.inv(Xest.T @ Xest) @ Xest.T @ Yest
-  #est = np.sum(Yest) -  np.sum((X*w.reshape(-1,1)) @ thetahat[1:])
   est = np.sum(Yest) -  np.sum(Xest @ thetahat)
   return est/n
 
-
-            
-
-def get_c_est_deg2_old(A, z, y, treatment_vec, p, i):
-    treatment_vec_cp = np.copy(treatment_vec)
-    neighbor_idx = np.nonzero(A[[i],:].toarray()[0])[0].tolist()
-    total_num = min(2, len(neighbor_idx))
-    choice_list = []
-    for choose_num in range(total_num + 1):
-      choice_sublist = list(combinations(neighbor_idx, choose_num))
-      choice_sublist = [list(tup) + [-1] * (total_num - choose_num) for tup in choice_sublist]
-      choice_list.extend(choice_sublist)
-    choice_list = np.array(choice_list, dtype=int)
-    choice_list_exp_a = np.repeat(choice_list[:, np.newaxis], choice_list.shape[0], axis=1)
-    choice_list_exp_b = np.repeat(choice_list[np.newaxis, :], choice_list.shape[0], axis=0)
-    choice_product = np.concatenate((choice_list_exp_a, choice_list_exp_b), axis=2)
-    tilde_zi = np.array([np.product(z[
-                    choice_list[x][choice_list[x] != -1]
-                ]) for x in range(len(choice_list))])
-
-    # neighbor_len = len(neighbor_idx)
-    # E = np.zeros((len(tilde_zi), len(tilde_zi)))
-    # E[0,0] = 1
-    # E[0,1:] = np.concatenate((np.ones(neighbor_len) * p, np.ones(int(neighbor_len * (neighbor_len - 1) / 2)) * p ** 2))
-    # E[1:,0] = np.concatenate((np.ones(neighbor_len) * p, np.ones(int(neighbor_len * (neighbor_len - 1) / 2)) * p ** 2))
-    E = np.array([[np.product(treatment_vec_cp[
-                    np.unique(choice_product[c,r])[np.unique(choice_product[c,r]) != -1]
-                ]) for c in range(choice_product.shape[0])] for r in range(choice_product.shape[1])])
-    E_inv = np.linalg.inv(E)
-    return (E_inv @ tilde_zi[:,None] * y[i]).reshape(-1)
 
 def get_c_est_deg2(A, z, y, treatment_vec, p, i):
     treatment_vec_cp = np.copy(treatment_vec)
@@ -364,42 +330,15 @@ def compute_component_B_deg2(X, A, beta, p):
             ret += X[i][:, None] @ X[ip][None, :] * temp_len * (temp_len - 1) / 2 * ((1 - 2*p) / (p * (1 - p)))**2
     return ret / n ** 2
 
-def compute_component_D_deg2_old(X, A, p, c_est_list):
-    '''
-    c_est_list: a list of length n, the i-th element of the list is a vector (\hat{c}_{i,S})_S
-    '''
-    n = len(X)
-    ret = np.zeros((X.shape[1],))
-    for i in range(n):
-        l = len(A[[i],:].indices)
-        sp_to_sp_id = {neighbor : index for index, neighbor in enumerate(A[[i],:].indices)}
-        pair_to_pair_id = {neighbor : {neighbor_p : int((2*l-1-index) * index / 2 + index_p - index - 1) for index_p, neighbor_p in enumerate(A[[i],:].indices) if index_p > index} for index, neighbor in enumerate(A[[i],:].indices)}
-        for ip in np.unique(A[:,A[[i],:].indices].nonzero()[0]):
-            beta1_id = len(set(A[[i],:].indices))
-            temp_len = len(set(A[[i],:].indices) & set(A[[ip],:].indices))
-            c_est_null = c_est_list[i][0] + p * sum(c_est_list[i][1:(beta1_id+1)]) + sum(c_est_list[i][(beta1_id +1):]) * p ** 2
-            ret += X[ip] * c_est_null * temp_len / (p * (1 - p))
-            ret += X[ip] * c_est_null * temp_len * (temp_len - 1) / 2 * (1 / p ** 3 + 1 / (1 - p) ** 3) * (1 - 2*p) ** 2
-            for sp in set(A[[i],:].indices) & set(A[[ip],:].indices):
-                sp_id = sp_to_sp_id[sp]
-                ret += X[ip] * (c_est_list[i][sp_id + 1] + p*(np.sum(c_est_list[i][list(pair_to_pair_id[sp].values())]))) * (1-2*p) / (p * (1 - p))
-            ret += X[ip] * (np.sum(c_est_list[i][l + 1:])) * ((1-p)**2 / p ** 3 + p**2 / (1 - p) ** 3) * (1 - 2*p) ** 2
-    #t2 = time.time()
-    #print("component D", t2-t1)
-    return 2 * ret/ n ** 2 
-
 def compute_component_D_deg2(X, A, p, c_est_list):
     '''
     c_est_list: a list of length n, the i-th element of the list is a vector (\hat{c}_{i,S})_S
     '''
     n = len(X)
     ret = np.zeros((X.shape[1],))
-    counts = []
-    cnulls = []
     for i in range(n):
         l = len(A[[i],:].indices)
         sp_to_sp_id = {neighbor : index for index, neighbor in enumerate(A[[i],:].indices)}
-        # pair_to_pair_id_old = {neighbor : {neighbor_p : int((2*l-1-index) * index / 2 + index_p - index - 1) for index_p, neighbor_p in enumerate(A[[i],:].indices) if index_p > index} for index, neighbor in enumerate(A[[i],:].indices)}
         pair_to_pair_id = {neighbor : [] for neighbor in A[[i],:].indices}
         for comb_id, comb in enumerate(list(combinations(A[[i],:].indices,2))):
             pair_to_pair_id[comb[0]].append(comb_id + 1 + l)
@@ -412,7 +351,6 @@ def compute_component_D_deg2(X, A, p, c_est_list):
             commons = set(A[[i],:].indices) & set(A[[ip],:].indices)
             pair_to_pair_id_with_common_neighbors = {neighbor : [] for neighbor in A[[i],:].indices}
             pair_to_pair_id_no_common_neighbors = {neighbor : [] for neighbor in A[[i],:].indices}
-            #pair_to_pair_id_single_common_neighbors = {neighbor : [] for neighbor in A[[i],:].indices}
             for comb_id, comb in enumerate(list(combinations(A[[i],:].indices,2))):
                 if comb[0] in commons and comb[1] in commons:
                     pair_to_pair_id_with_common_neighbors[comb[0]].append(comb_id + 1 + l)
@@ -443,9 +381,6 @@ def compute_component_D_deg2(X, A, p, c_est_list):
                     ret += X[ip] * c_est_first_order * (1-2*p) / (p * (1 - p)) * temp_len
                     
             
-    #t2 = time.time()
-    #print("component D", t2-t1)
-    # print(counts, cnulls)
     return 2 * ret/ n ** 2
 
 def compute_component_D_deg2_old(X, A, p, c_est_list):

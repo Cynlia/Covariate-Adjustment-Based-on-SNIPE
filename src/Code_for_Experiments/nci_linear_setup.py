@@ -1237,8 +1237,7 @@ def expectation_product(S, T, U, p):
             expectation *= p
     return expectation
 
-def compute_component_B_deg1(X, A, beta, p):
-    assert beta == 1
+def compute_component_B_deg1(X, A, p):
     n = len(X)
     ret = np.zeros((X.shape[1], X.shape[1]))
     for i in range(n):
@@ -1247,12 +1246,10 @@ def compute_component_B_deg1(X, A, beta, p):
     return ret
 
 
-def compute_component_D_deg1(X, A, beta, p, c_est_list):
+def compute_component_D_deg1(X, A, p, c_est_list):
     '''
     c_est_list: a list of length n, the i-th element of the list is a vector (\hat{c}_{i,S})_S
     '''
-    #t1 = time.time()
-    assert beta == 1
     n = len(X)
     ret = np.zeros((X.shape[1],))
     for i in range(n):
@@ -1263,8 +1260,7 @@ def compute_component_D_deg1(X, A, beta, p, c_est_list):
             for sp in set(A[[i],:].indices) & set(A[[ip],:].indices):
                 sp_id = sp_to_sp_id[sp]
                 ret += X[ip] * c_est_list[i][sp_id + 1] * (1-2*p) * 2 / n ** 2
-    #t2 = time.time()
-    #print("component D", t2-t1)
+    
     return ret/ (p * (1 - p))
 
 
@@ -1319,7 +1315,7 @@ def get_c_est(A, z, y, treatment_vec, i):
     E_inv[range(1,len(local_treatment_vec)), range(1,len(local_treatment_vec))] = 1 / (local_treatment_vec[1:] * (1 - local_treatment_vec[1:]))
     return (E_inv @ tilde_zi[:,None] * y[i]).reshape(-1)
 
-def SNIPE_beta_adjust_test(n, y, X, w, components):
+def VIM_beta(n, y, X, w, components):
     B, D = components
     gamma = np.linalg.inv(B) @ D / 2
     # gamma = np.ones((X.shape[1]))

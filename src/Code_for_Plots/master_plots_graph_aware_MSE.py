@@ -24,9 +24,9 @@ def main():
     x_var = ['n']
     x_plot = ['$n$']
 
-    graph = "er"
-    for beta in [1]:
-        title = ['$\\beta='+str(beta)+', n=10000, p=0.2$','$\\beta='+str(beta)+', n=10000, r=2$','$\\beta='+str(beta)+', p=0.2, r=2$']
+    graph = "srgg"
+    for beta in [2]:
+        title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+', n=10000, r=2$','$\\beta='+str(beta)+', p=0.2, r=2$']
         #title = ['$\\beta='+str(beta)+', n=10000, p=0.2, r=2$']
         est_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', 'Lin\'s', 'DM']
         for ind in [0,1,2]:
@@ -58,7 +58,7 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
 
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
     # Add zoomed-in inset
-    axins = inset_axes(ax, width="95%", height="125%", loc='upper left', 
+    axins = inset_axes(ax, width="95%", height="95%", loc='upper left', 
                    bbox_to_anchor=(0, 0.5, .5, .5), bbox_transform=ax.transAxes)
 
     sns.lineplot(
@@ -69,8 +69,8 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     )
 
     # Adjust zoom region here
-    axins.set_xlim(9000, 10000)
-    axins.set_ylim(0, 20)
+    axins.set_xlim(8000, 10010)
+    axins.set_ylim(10, 60)
     axins.set_xticks([])
     axins.set_yticks([])
     axins.set_xlabel("")
@@ -83,7 +83,7 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
         ax.set_ylim(0,50)
     else:
         pass
-        ax.set_ylim(0,100)
+        #ax.set_ylim(0,100)
     ax.set_xlabel(x_plot, fontsize = 18)
     ax.set_ylabel("MSE", fontsize = 18)
     ax.set_title(title, fontsize=20)

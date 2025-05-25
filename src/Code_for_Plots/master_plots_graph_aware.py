@@ -26,8 +26,8 @@ def main():
     #x_label = ['percent']
     #x_var = ['pct']
     #x_plot = ['$pct$']
-    graph = "er"
-    for beta in [1]:
+    graph = "srgg"
+    for beta in [2]:
         if graph == "sw":
             title = ['$\\beta='+str(beta)+', n=9216, p=0.2$','$\\beta='+str(beta)+', n=9216, r=2$','$\\beta='+str(beta)+', p=0.2, r=2$']
         else:
