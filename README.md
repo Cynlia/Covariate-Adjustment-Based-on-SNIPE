@@ -23,16 +23,16 @@ Published at [Conference/Journal Name], [Year]
 ├── data/                    # Data scripts or instructions
 │   └── README.md
 ├── src/                     # Core method implementations
-│   ├── __init__.py
-│   ├── dr_learner.py
-│   └── our_method.py
-├── scripts/                 # Experiment runners and plotting scripts
-│   ├── run_experiment.sh
-│   └── plot_results.py
-├── notebooks/               # Jupyter notebooks for demo or figures
+│   ├── Codes_for_Experiments/
+│       ├── experiments_master_graph_aware.py
+│       ├── nci_linear_setup.py
+│       └── nci_polynomial_setup.py
+│   └── Codes_for_Plots/
+│       ├── master_plots_graph_aware_MSE.py
+│       └── master_plots_graph_aware.py
+│   ├── OutFiles/            # Output files (figures, csvs)
+├── notebooks/               # Jupyter notebooks for demo
 │   └── demo.ipynb
-├── results/                 # Output files (figures, logs)
-│   └── figures/
 └── paper/                   # Optional copy of the paper
     └── your_paper.pdf
 ```
@@ -95,10 +95,10 @@ The following parts are **original contributions** of this project:
 
 ## 🙏 Code Attribution
 
-This project is built upon or adapted from the following open-source repositories:
+This project is developed based on the following open-source repository:
 
-- [Original DR-Learner Repo](https://github.com/original-author/original-repo) – Used as a base for `src/dr_learner.py`
-- [Simulation Framework](https://github.com/other-author/other-repo) – Adapted for our experiment design in `scripts/` and `data/`
+- [mayscortez/low-order-unitRD](https://github.com/mayscortez/low-order-unitRD):
+  We adapted some components of their implementation, especially the experimental design and data generation. Several files in `src/` are modified versions of their code to fit the objectives of our study.
 
 We sincerely thank the original authors for making their code publicly available. Please refer to the respective repositories for licensing terms.
 
