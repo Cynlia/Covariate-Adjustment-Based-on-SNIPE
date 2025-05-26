@@ -31,7 +31,7 @@ def main():
         if graph == "sw":
             title = ['$\\beta='+str(beta)+', n=9216, p=0.2$','$\\beta='+str(beta)+', n=9216, r=2$','$\\beta='+str(beta)+', p=0.2, r=2$']
         else:
-            title = ['$\\beta='+str(beta)+', n=10000, p=0.2$','$\\beta='+str(beta)+', n=10000, r=2$','$\\beta='+str(beta)+', p=0.2, r=2$']
+            title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+', p=0.2, r=2$']
             #title = ['$\\beta='+str(beta)+', n=10000, p=0.2, r=2$']
         est_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', 'Lin\'s', 'DM']
         for ind in [0,1,2]:
