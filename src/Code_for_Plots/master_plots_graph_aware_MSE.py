@@ -20,9 +20,9 @@ def main():
     x_label = ['ratio', 'tp', 'size', 'percent']
     x_var = ['ratio', 'p', 'n', 'pct']
     x_plot = ['$r$', '$p$', '$n$','$pct$']
-    x_label = ['size']
-    x_var = ['n']
-    x_plot = ['$n$']
+    x_label = ['tp', 'size']
+    x_var = ['p', 'n']
+    x_plot = ['$p$', '$n$']
 
     graph = "srgg"
     for beta in [2]:
@@ -69,8 +69,12 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     )
 
     # Adjust zoom region here
-    axins.set_xlim(8000, 10010)
-    axins.set_ylim(10, 60)
+    if x_var == 'n': 
+        axins.set_xlim(8000, 10010)
+        axins.set_ylim(10, 60)
+    elif x_var == 'p':
+        axins.set_xlim(0.39, 0.505)
+        axins.set_ylim(5, 45)
     axins.set_xticks([])
     axins.set_yticks([])
     axins.set_xlabel("")
