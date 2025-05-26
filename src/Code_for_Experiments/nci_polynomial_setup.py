@@ -320,7 +320,7 @@ def get_c_est_deg2(A, z, y, treatment_vec, p, i):
     return (E_inv @ tilde_zi[:,None] * y[i]).reshape(-1)
 
 
-def compute_component_B_deg2(X, A, beta, p):
+def compute_component_B_deg2(X, A, p):
     n = len(X)
     ret = np.zeros((X.shape[1], X.shape[1]))
     for i in range(n):
