@@ -1323,7 +1323,7 @@ def VIM_beta(n, y, X, w, components):
     est = np.sum(y*w) -  np.sum(Xest @ gamma)
     return est/n
 
-def SNIPE_beta_Lin(n, y, X, w, z, p):
+def SNIPE_beta_Lin(y, X, z):
     n0, n1 = np.sum(1-z), np.sum(z)
 
     X0 = np.hstack((np.ones((n0, 1)), X[z == 0, :]))
@@ -1333,5 +1333,5 @@ def SNIPE_beta_Lin(n, y, X, w, z, p):
     gamma1 = np.linalg.inv(X1.T @ X1) @ X1.T @ (y[z == 1])
     Xest = np.sum(z*(X @ (gamma1[1:])))/n1 - np.sum((1-z)*(X @ (gamma0[1:])))/n0
     Yest = y.dot(z)/n1 - y.dot(1-z)/n0
-    est = Yest -  np.sum(Xest)
+    est = Yest -  Xest
     return est

@@ -73,8 +73,8 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
         axins.set_xlim(8000, 10010)
         axins.set_ylim(10, 60)
     elif x_var == 'p':
-        axins.set_xlim(0.39, 0.505)
-        axins.set_ylim(5, 45)
+        axins.set_xlim(0.099, 0.155)
+        axins.set_ylim(50, 120)
     axins.set_xticks([])
     axins.set_yticks([])
     axins.set_xlabel("")

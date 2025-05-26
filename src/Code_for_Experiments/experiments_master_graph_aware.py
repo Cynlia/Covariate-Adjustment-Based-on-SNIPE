@@ -50,7 +50,7 @@ def main(argv):
 
     graphStr = "srgg"
 
-    for beta in [2]:
+    for beta in [1]:
 
         f = open(save_path+'experiments_output_deg'+str(beta)+'_SNIPE'+'.txt', 'w')
         startTime1 = time.time()
@@ -250,12 +250,12 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
             estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))
             estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))
             estimators.append(lambda y,z,w: ncls.SNIPE_deg1(n,y,w))
-            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(n, y, X, w, z, p))
+            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(y, X, z))
         else:
             estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))
             estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))
             estimators.append(lambda y,z,w: ncps.SNIPE_beta(n,y,w))
-            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(n, y, X, w, z, p))
+            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(y, X, z))
             
         estimators.append(lambda y,z,w: ncls.diff_in_means_naive(y,z))
         alg_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', 'Lin\'s', 'DM']
