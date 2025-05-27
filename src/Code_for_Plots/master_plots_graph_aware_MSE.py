@@ -20,12 +20,12 @@ def main():
     x_label = ['ratio', 'tp', 'size', 'percent']
     x_var = ['ratio', 'p', 'n', 'pct']
     x_plot = ['$r$', '$p$', '$n$','$pct$']
-    x_label = ['tp', 'size']
-    x_var = ['p', 'n']
-    x_plot = ['$p$', '$n$']
+    x_label = ['tp']
+    x_var = ['p']
+    x_plot = ['$p$']
 
-    graph = "srgg"
-    for beta in [2]:
+    graph = "er"
+    for beta in [1]:
         title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+', p=0.2, r=2$']
         #title = ['$\\beta='+str(beta)+', n=10000, p=0.2, r=2$']
         est_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', 'Lin\'s', 'DM']
@@ -73,8 +73,8 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
         axins.set_xlim(8000, 10010)
         axins.set_ylim(10, 60)
     elif x_var == 'p':
-        axins.set_xlim(0.099, 0.155)
-        axins.set_ylim(50, 120)
+        axins.set_xlim(0.098, 0.502)
+        axins.set_ylim(0, 10)
     axins.set_xticks([])
     axins.set_yticks([])
     axins.set_xlabel("")
@@ -84,7 +84,7 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     
     if model == 'deg1':
         pass
-        ax.set_ylim(0,50)
+        #ax.set_ylim(0,50)
     else:
         pass
         #ax.set_ylim(0,100)
