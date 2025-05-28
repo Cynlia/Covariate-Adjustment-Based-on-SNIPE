@@ -92,13 +92,13 @@ def main(argv):
         ################################################
         if False:    
             startTime2 = time.time()
-            if graphStr == "sw":
-                n = 96
-            else:
-                n = 1   # number of nodes in network, default 500
+            n = 10000   # number of nodes in network, default 500
             diag = 10       # maximum norm of direct effect
             r = 2           # ratio between indirect and direct effects
-            sigma = 0.02
+            if beta == 1:
+                sigma = 0.02
+            else:
+                sigma = 0.014
             pct = 1
 
         
@@ -127,13 +127,13 @@ def main(argv):
         ###########################################################
         if False:
             startTime2 = time.time()
-            if graphStr == "sw":
-                n = 96
-            else:
-                n = 1     # number of nodes in network, default 500
-            p = 0.2             # treatment probability
+            n = 10000     # number of nodes in network, default 500
+            p = 0.35             # treatment probability
             diag = 10           # maximum norm of direct effect
-            sigma = 0.02
+            if beta == 1:
+                sigma = 0.02
+            else:
+                sigma = 0.014
             pct = 1
 
             results = []
@@ -161,13 +161,13 @@ def main(argv):
         ###########################################################
         if False:
             startTime2 = time.time()
-            if graphStr == "sw":
-                n = 96
-            else:
-                n = 5000     # number of nodes in network, default 500
-            p = 0.2             # treatment probability
+            n = 10000     # number of nodes in network, default 500
+            p = 0.35             # treatment probability
             diag = 10           # maximum norm of direct effect
-            sigma = 0.02
+            if beta == 1:
+                sigma = 0.02
+            else:
+                sigma = 0.014
             r = 2           # ratio between indirect and direct effects
 
             results = []
