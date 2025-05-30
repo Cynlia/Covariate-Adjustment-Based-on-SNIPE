@@ -20,9 +20,9 @@ def main():
     x_label = ['ratio', 'tp', 'size', 'percent']
     x_var = ['ratio', 'p', 'n', 'pct']
     x_plot = ['$r$', '$p$', '$n$','$pct$']
-    x_label = ['size']
-    x_var = ['n']
-    x_plot = ['$n$']
+    x_label = ['ratio', 'tp', 'size']
+    x_var = ['ratio', 'p', 'n']
+    x_plot = ['$r$', '$p$', '$n$']
 
     graph = "srgg"
     for beta in [2]:
