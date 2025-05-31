@@ -50,7 +50,7 @@ def main(argv):
 
     graphStr = "srgg"
 
-    for beta in [1]:
+    for beta in [2]:
 
         f = open(save_path+'experiments_output_deg'+str(beta)+'_SNIPE'+'.txt', 'w')
         startTime1 = time.time()
@@ -58,7 +58,7 @@ def main(argv):
         ###########################################
         # Run Experiment 1: Varying Size of Network
         ###########################################
-        if True:
+        if False:
             diag = 10       # controls magnitude of direct effects
             r = 2           # ratio between indirect and direct effects
             p = 0.2         # treatment probability
@@ -159,7 +159,7 @@ def main(argv):
         ###########################################################
         # Run Experiment: Varying Percent of Covariate Explanation  
         ###########################################################
-        if False:
+        if True:
             startTime2 = time.time()
             n = 10000     # number of nodes in network, default 500
             p = 0.35             # treatment probability
@@ -171,7 +171,7 @@ def main(argv):
             r = 2           # ratio between indirect and direct effects
 
             results = []
-            pct_X = [0, 0.25,0.5,0.75,1,1/0.75,1/0.5,1/0.25,10]
+            pct_X = [0, 0.25,0.5,0.75,1,1/0.75,1/0.5,1/0.25]
 
             for pct in pct_X:
                 print('percent: {}'.format(pct))
@@ -272,6 +272,8 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
             dict_base.update({'rep':i, 'Rand': 'Bernoulli'})
             z = ncls.bernoulli(n,p)
             y = fy(z)
+            print(X.dot(b))
+            print(y)
             if beta == 1:
                 treatment_vec = p * np.ones((n,))
                 c_est_list = [ncls.get_c_est(A, z, y, treatment_vec, i) for i in range(n)]

@@ -20,16 +20,16 @@ def main():
     x_label = ['ratio', 'tp', 'size', 'percent']
     x_var = ['ratio', 'p', 'n', 'pct']
     x_plot = ['$r$', '$p$', '$n$','$pct$']
-    x_label = ['ratio', 'tp', 'size']
-    x_var = ['ratio', 'p', 'n']
-    x_plot = ['$r$', '$p$', '$n$']
+    #x_label = ['ratio', 'tp', 'size']
+    #x_var = ['ratio', 'p', 'n']
+    #x_plot = ['$r$', '$p$', '$n$']
 
     graph = "srgg"
     for beta in [2]:
-        title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+', p=0.2, r=2$']
+        title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$']
         #title = ['$\\beta='+str(beta)+', n=10000, p=0.2, r=2$']
         est_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', 'Lin\'s', 'DM']
-        for ind in [0,1,2]:
+        for ind in [0,1,2,3]:
             plot(graph,x_var[ind],x_label[ind],'deg'+str(beta),x_plot[ind],title[ind],est_names,permute=True)
 
 
@@ -91,7 +91,8 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
         #ax.set_ylim(0,50)
     else:
         pass
-        #ax.set_ylim(0,100)
+        #ax.set_xlim(0,6)
+        #ax.set_ylim(0,50)
     ax.set_xlabel(x_plot, fontsize = 18)
     ax.set_ylabel("MSE", fontsize = 18)
     ax.set_title(title, fontsize=20)
