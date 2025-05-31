@@ -50,7 +50,7 @@ def main(argv):
 
     graphStr = "srgg"
 
-    for beta in [2]:
+    for beta in [1]:
 
         f = open(save_path+'experiments_output_deg'+str(beta)+'_SNIPE'+'.txt', 'w')
         startTime1 = time.time()
