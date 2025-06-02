@@ -41,7 +41,7 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     df = pd.read_csv(load_path+graph+experiment+'-SNIPE.csv')
 
     # Compute MSE
-    df["biassq"] = df["Bias_squared"]
+    df["biassq"] = df["Bias_squared"]/df["TTE"] ** 2
     # print(df)
     df2 = df.groupby([x_var,'Estimator']).agg('mean', numeric_only=True)
     print(df2["biassq"])
@@ -59,11 +59,11 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
     
     # Add zoomed-in inset
-    if True:
+    if x_var == 'pct':
         axins = inset_axes(ax, width="95%", height="95%", loc='upper left', 
                    bbox_to_anchor=(0, 0.5, .5, .5), bbox_transform=ax.transAxes)
 
-       
+        
         sns.lineplot(
             x=x_var, y='biassq', hue='Estimator', style='Estimator',
             data=df2.reset_index(),
@@ -74,14 +74,15 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     
         # Adjust zoom region here
         if x_var == 'n': 
-            axins.set_xlim(8000, 10010)
-            axins.set_ylim(10, 60)
+            pass
+            #axins.set_xlim(8000, 10010)
+            #axins.set_ylim(10, 60)
         elif x_var == 'p':
             pass
             #axins.set_xlim(0.098, 0.502)
             #axins.set_ylim(0, 10)
         elif x_var == 'pct':
-            axins.set_ylim(12, 27)
+            axins.set_ylim(0.17, 0.35)
             axins.set_xlim(2.99, 4.10)
         axins.set_xticks([])
         axins.set_yticks([])

@@ -28,8 +28,7 @@ def erdos_renyi(n,p,undirected=False):
 
 def soft_RGG(X,n,sigma,link_fn = None):
     '''
-    Generates a random network of n nodes using the Erdos-Renyi method,
-    where the probability that an edge exists between two nodes is p.
+    Generates a random network of n nodes using the soft RGG method.
 
     Returns the adjacency matrix of the network as an n by n numpy array
     '''
