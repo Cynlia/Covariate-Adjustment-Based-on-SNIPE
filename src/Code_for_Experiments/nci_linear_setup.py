@@ -276,32 +276,19 @@ def simpleXWeights_old(A, X, M, diag=5, offdiag=5, rand_diag=np.array([]), rand_
 
     in_deg = scipy.sparse.diags(np.array(A.sum(axis=1)).flatten(),0)  # array of the in-degree of each node
     C = in_deg.dot(A - scipy.sparse.eye(n))
-    XM = X @ M / np.sum(np.abs(X @ M)) * n ** 2
+    XM = X @ M / np.sum(np.abs(X @ M)) * n ** 2 / 5
     X_temp = XM * offdiag
     X_temp[range(n),range(n)] = np.diag(XM) * diag
     col_sum = np.array(C.sum(axis=0)).flatten()
-    #X_col_sum = np.array(X_temp.sum(axis=0)).flatten()
     col_sum[col_sum==0] = 1
-    # X_col_sum[X_col_sum == 0] = 1
-    #X_col_sum = np.ones_like(X_col_sum)
     temp = scipy.sparse.diags(C_offdiag/col_sum)
     C = C.dot(temp)
-    #X_temp = X_temp @ np.diag(offdiag/np.max(np.abs(X_temp),axis=0)*np.max(np.abs(C),axis=0))
-
-
-    # out_deg = np.array(A.sum(axis=0)).flatten() # array of the out-degree of each node
-    # out_deg[out_deg==0] = 1
-    # temp = scipy.sparse.diags(C_offdiag/out_deg)
-    # C = A.dot(temp)
 
     if rand_diag.size == 0:
         rand_diag = np.random.rand(n)
     C_diag = diag*rand_diag
     C.setdiag(C_diag)
-    # X_temp[range(n),range(n)] = diag * np.diag((X @ M)/np.mean(np.abs(X_temp),axis=0)*np.mean(np.abs(C),axis=0))
-    # print(X.shape, M.shape)
-    # print(np.linalg.norm(C.toarray()), np.linalg.norm(A.multiply(X @ M).toarray()))
-    X_temp = X_temp / 5
+    
     C = C + A.multiply(X_temp)
     
 

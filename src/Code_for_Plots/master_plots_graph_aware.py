@@ -18,11 +18,11 @@ save_path = 'outputFiles/graph_aware/'
 
 def main():    
     x_label = ['ratio', 'tp', 'size', 'percent']
-    x_var = ['ratio', 'p', 'n', 'pct']
-    x_plot = ['$r$', '$p$', '$n$','$pct$']
-    #x_label = ['percent']
-    #x_var = ['pct']
-    #x_plot = ['$pct$']
+    x_var = ['ratio', 'p', 'n', 'rho']
+    x_plot = ['$r$', '$p$', '$n$','$\\rho$']
+    #x_label = ['tp', 'size']
+    #x_var = ['p', 'n']
+    #x_plot = ['$p$', '$n$']
     graph = "srgg"
     for beta in [2]:
         if graph == "sw":

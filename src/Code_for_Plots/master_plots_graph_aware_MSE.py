@@ -18,11 +18,14 @@ save_path = 'outputFiles/graph_aware/'
 
 def main():    
     x_label = ['ratio', 'tp', 'size', 'percent']
-    x_var = ['ratio', 'p', 'n', 'pct']
-    x_plot = ['$r$', '$p$', '$n$','$pct$']
-    #x_label = ['ratio', 'tp', 'size']
-    #x_var = ['ratio', 'p', 'n']
-    #x_plot = ['$r$', '$p$', '$n$']
+    x_var = ['ratio', 'p', 'n', 'rho']
+    x_plot = ['$r$', '$p$', '$n$','$\\rho$']
+    #x_label = ['tp', 'size']
+    #x_var = ['p', 'n']
+    #x_plot = ['$p$', '$n$']
+    x_label = ['percent']
+    x_var = ['rho']
+    x_plot = ['$rho$']
 
     graph = "srgg"
     for beta in [2]:
@@ -59,8 +62,8 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
     
     # Add zoomed-in inset
-    if x_var == 'pct':
-        axins = inset_axes(ax, width="95%", height="95%", loc='upper left', 
+    if x_var == 'n' and model == 'deg1':
+        axins = inset_axes(ax, width="80%", height="80%", loc='upper left', 
                    bbox_to_anchor=(0, 0.5, .5, .5), bbox_transform=ax.transAxes)
 
         
@@ -74,9 +77,9 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     
         # Adjust zoom region here
         if x_var == 'n': 
-            pass
-            #axins.set_xlim(8000, 10010)
-            #axins.set_ylim(10, 60)
+            #pass
+            axins.set_xlim(8000, 10020)
+            axins.set_ylim(0.17, 0.32)
         elif x_var == 'p':
             pass
             #axins.set_xlim(0.098, 0.502)
@@ -93,11 +96,11 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     
     if model == 'deg1':
         pass
-        #ax.set_ylim(0,50)
+        ax.set_ylim(0,2)
     else:
         pass
         #ax.set_xlim(0,6)
-        #ax.set_ylim(0,50)
+        ax.set_ylim(0,2)
     ax.set_xlabel(x_plot, fontsize = 18)
     ax.set_ylabel("MSE", fontsize = 18)
     ax.set_title(title, fontsize=20)
