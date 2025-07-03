@@ -20,15 +20,15 @@ def main():
     x_label = ['ratio', 'tp', 'size', 'percent']
     x_var = ['ratio', 'p', 'n', 'rho']
     x_plot = ['$r$', '$p$', '$n$','$\\rho$']
-    #x_label = ['tp', 'size']
-    #x_var = ['p', 'n']
-    #x_plot = ['$p$', '$n$']
-    x_label = ['percent']
-    x_var = ['rho']
-    x_plot = ['$rho$']
+    #x_label = ['size']
+    #x_var = ['n']
+    #x_plot = ['$n$']
+    #x_label = ['percent']
+    #x_var = ['rho']
+    #x_plot = ['$\\rho$']
 
-    graph = "srgg"
-    for beta in [2]:
+    graph = "er"
+    for beta in [1]:
         title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$']
         #title = ['$\\beta='+str(beta)+', n=10000, p=0.2, r=2$']
         est_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', 'Lin\'s', 'DM']
@@ -62,7 +62,7 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
     
     # Add zoomed-in inset
-    if x_var == 'n' and model == 'deg1':
+    if x_var == 'n' and model == 'deg1' and  graph == "srgg":
         axins = inset_axes(ax, width="80%", height="80%", loc='upper left', 
                    bbox_to_anchor=(0, 0.5, .5, .5), bbox_transform=ax.transAxes)
 
@@ -93,6 +93,7 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
         axins.set_ylabel("")
 
         mark_inset(ax, axins, loc1=1, loc2=3, fc="none", ec="gray")
+    
     
     if model == 'deg1':
         pass

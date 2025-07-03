@@ -1304,7 +1304,6 @@ def get_c_est(A, z, y, treatment_vec, i):
 def VIM_beta(n, y, X, w, components):
     B, D = components
     gamma = np.linalg.inv(B) @ D / 2
-    # gamma = np.ones((X.shape[1]))
     Xest = X*w.reshape(-1,1)
     est = np.sum(y*w) -  np.sum(Xest @ gamma)
     return est/n

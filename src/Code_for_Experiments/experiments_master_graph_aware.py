@@ -48,7 +48,7 @@ def main(argv):
     G = 1         # number of graphs we want to average over (10)
     T = 1          # number of trials per graph (500)
 
-    graphStr = "srgg"
+    graphStr = "er"
 
     for beta in [1]:
 
@@ -58,7 +58,7 @@ def main(argv):
         ###########################################
         # Run Experiment 1: Varying Size of Network
         ###########################################
-        if False:
+        if True:
             diag = 10       # controls magnitude of direct effects
             r = 2           # ratio between indirect and direct effects
             p = 0.2         # treatment probability
@@ -75,7 +75,7 @@ def main(argv):
                 print("n = {}".format(n))
                 startTime2 = time.time()
 
-                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta))
+                results.extend(run_experiment(G,T,n,p,r,sigma,rho,graphStr,diag,beta))
 
                 executionTime = (time.time() - startTime2)
                 print('Runtime (in seconds) for n = {} step: {}'.format(n,executionTime),file=f)
@@ -90,7 +90,7 @@ def main(argv):
         ################################################
         # Run Experiment: Varying Treatment Probability 
         ################################################
-        if False:    
+        if True:    
             startTime2 = time.time()
             n = 10000   # number of nodes in network, default 500
             diag = 10       # maximum norm of direct effect
@@ -110,7 +110,7 @@ def main(argv):
                 print("Treatment Probability: {}".format(p))
                 startTime3 = time.time()
 
-                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta))
+                results.extend(run_experiment(G,T,n,p,r,sigma,rho,graphStr,diag,beta))
 
                 executionTime = (time.time() - startTime3)
                 print('Runtime (in seconds) for p = {} step: {}'.format(p,executionTime),file=f)
@@ -120,12 +120,12 @@ def main(argv):
             print('Runtime (tp experiment) in minutes: {}'.format(executionTime/60),file=f)  
             print('Runtime (tp experiment) in minutes: {}\n'.format(executionTime/60))           
             df = pd.DataFrame.from_records(results)
-            df.to_csv(save_path+graphStr+'-tp-deg'+str(beta)+'-SNIPE-'+str(seed)+'.csv')
+            df.to_csv(save_path+graphStr+'-tp-deg'+str(beta)+'-SNIPE-'+'.csv')
 
         ###########################################################
         # Run Experiment: Varying Ratio of Indirect & Direct Effects 
         ###########################################################
-        if False:
+        if True:
             startTime2 = time.time()
             n = 10000     # number of nodes in network, default 500
             p = 0.35             # treatment probability
@@ -144,7 +144,7 @@ def main(argv):
                 print('ratio: {}'.format(r))
                 startTime3 = time.time()
 
-                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta))
+                results.extend(run_experiment(G,T,n,p,r,sigma,rho,graphStr,diag,beta))
 
                 executionTime = (time.time() - startTime3)
                 print('Runtime (in seconds) for r = {} step: {}'.format(r,executionTime),file=f)
@@ -154,7 +154,7 @@ def main(argv):
             print('Runtime (ratio experiment) in minutes: {}'.format(executionTime/60),file=f)   
             print('Runtime (ratio experiment) in minutes: {}\n'.format(executionTime/60))           
             df = pd.DataFrame.from_records(results)
-            df.to_csv(save_path+graphStr+'-ratio-deg'+str(beta)+'-SNIPE-'+str(seed)+'.csv')
+            df.to_csv(save_path+graphStr+'-ratio-deg'+str(beta)+'-SNIPE-'+'.csv')
 
         ###########################################################
         # Run Experiment: Varying Percent of Covariate Explanation  
@@ -171,13 +171,13 @@ def main(argv):
             r = 2           # ratio between indirect and direct effects
 
             results = []
-            pct_X = [0, 0.25,0.5,0.75,1,1/0.75,1/0.5,1/0.25]
+            rhos = [0, 0.2, 0.4, 0.6, 0.8, 1]
 
-            for pct in pct_X:
+            for rho in rhos:
                 print('percent: {}'.format(pct))
                 startTime3 = time.time()
 
-                results.extend(run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag,beta))
+                results.extend(run_experiment(G,T,n,p,r,sigma,rho,graphStr,diag,beta))
 
                 executionTime = (time.time() - startTime3)
                 print('Runtime (in seconds) for pct = {} step: {}'.format(r,executionTime),file=f)
@@ -187,7 +187,7 @@ def main(argv):
             print('Runtime (percent experiment) in minutes: {}'.format(executionTime/60),file=f)   
             print('Runtime (percent experiment) in minutes: {}\n'.format(executionTime/60))           
             df = pd.DataFrame.from_records(results)
-            df.to_csv(save_path+graphStr+'-percent-deg'+str(beta)+'-SNIPE-'+str(seed)+'.csv')
+            df.to_csv(save_path+graphStr+'-percent-deg'+str(beta)+'-SNIPE-'+'.csv')
 
         executionTime = (time.time() - startTime1)
         print('Runtime (whole script) in minutes: {}'.format(executionTime/60),file=f)
@@ -195,12 +195,12 @@ def main(argv):
 
         f.close()
 
-def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
+def run_experiment(G,T,n,p,r,sigma,rho,graphStr,diag=1,beta=2):
     
     offdiag = r*diag   # maximum norm of indirect effect
 
     results = []
-    dict_base = {'p': p, 'ratio': r, 'n': n, 'beta': beta, 'pct': pct}
+    dict_base = {'p': p, 'ratio': r, 'n': n, 'beta': beta, 'rho': rho}
 
     sz = str(n) + '-'
     
@@ -208,10 +208,12 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
     #############################################
     # generation setting for covariate adjustment
     #############################################
-    b = 5*pct*np.ones((covariate_dim,))
-    X_uncentered = np.random.randn(n, covariate_dim) 
+    b = 5*np.ones((covariate_dim,))
+    X_uncentered = np.random.randn(n, covariate_dim)
+    X_unobserved = np.random.randn(n, covariate_dim) 
     X_c_coeff = np.ones((covariate_dim, n))+np.random.randn(covariate_dim, n)
     X = X_uncentered - np.mean(X_uncentered, axis=0)
+    X_true = rho*X + np.sqrt(1-rho**2)*(X_unobserved - np.mean(X_unobserved, axis=0))
 
     for g in range(G):
         graph_rep = str(g)
@@ -222,6 +224,8 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
             A = ncls.erdos_renyi(n,deg/n)
         elif graphStr == "srgg":
             A = ncls.soft_RGG(X,n,sigma)
+        elif graphStr == "SUTVA":
+            A = ncls.erdos_renyi(n,0/n)
 
         rand_wts = np.random.rand(n,3)
         
@@ -229,15 +233,15 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
         alpha = rand_wts[:,0].flatten()
         
         if beta == 1: 
-            C = ncls.simpleXWeights_old(A, X, X_c_coeff, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
+            C = ncls.simpleXWeights_old(A, X_true, X_c_coeff, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
         if beta == 2:
-            C_linear = ncls.simpleXWeights_old(A, X, X_c_coeff, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
-            C = ncps.simpleWeights_deg2(X, A, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
+            C_linear = ncls.simpleXWeights_old(A, X_true, X_c_coeff, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
+            C_quad = ncps.simpleWeights_deg2(X_true, A, diag, offdiag, rand_wts[:,1].flatten(), rand_wts[:,2].flatten())
 
         if beta == 1:
-            fy = lambda z: ncls.linear_cov_adj(b,C,alpha,z,X)
+            fy = lambda z: ncls.linear_cov_adj(b,C,alpha,z,X_true)
         else:
-            fy = ncps.ppom_cov_adj(beta, C, alpha, X, b, C_linear)
+            fy = ncps.ppom_cov_adj(beta, C_quad, alpha, X_true, b, C_linear)
 
         # compute and print true TTE
         TTE = 1/n * np.sum((fy(np.ones(n)) - fy(np.zeros(n))))
@@ -272,8 +276,6 @@ def run_experiment(G,T,n,p,r,sigma,pct,graphStr,diag=1,beta=2):
             dict_base.update({'rep':i, 'Rand': 'Bernoulli'})
             z = ncls.bernoulli(n,p)
             y = fy(z)
-            print(X.dot(b))
-            print(y)
             if beta == 1:
                 treatment_vec = p * np.ones((n,))
                 c_est_list = [ncls.get_c_est(A, z, y, treatment_vec, i) for i in range(n)]

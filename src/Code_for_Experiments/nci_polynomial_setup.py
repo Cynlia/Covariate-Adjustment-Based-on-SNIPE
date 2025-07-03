@@ -26,7 +26,7 @@ f_quartic = lambda alpha, z, gz: alpha + a1*z + a2*np.multiply(gz,gz) + a3*np.po
 # Define f(z)_cov_adj
 f_linear_cov_adj = lambda alpha, z, gz, X, b: alpha + a1*z + X.dot(b)
 #f_quadratic_cov_adj = lambda alpha, z, gz, X, b: alpha + a1*z + a2*np.multiply(gz,gz) + X.dot(b)
-f_quadratic_cov_adj = lambda alpha, z, gz, X, b, C: alpha + a1*z + a2*np.multiply(gz,gz) + X.dot(b) - a2*(C**2).dot(z) / (np.array(np.sum(C,1)).flatten())**2
+f_quadratic_cov_adj = lambda alpha, z, gz, X, b, C_linear, C_quad: alpha + a1*C_linear.dot(z) + a2*np.multiply(gz,gz) + X.dot(b) - a2*(C_quad**2).dot(z) / (np.array(np.sum(C_quad,1)).flatten())**2
 f_cubic_cov_adj = lambda alpha, z, gz, X, b: alpha + a1*z + a2*np.multiply(gz,gz) + a3*np.power(gz,3) + X.dot(b)
 f_quartic_cov_adj = lambda alpha, z, gz, X, b: alpha + a1*z + a2*np.multiply(gz,gz) + a3*np.power(gz,3) + a4*np.power(gz,4) + X.dot(b)
 
@@ -59,14 +59,14 @@ def ppom(beta, C, alpha):
           print("ERROR: invalid degree")
       return lambda z: f(alpha, C.dot(z), g(z)) 
 
-def ppom_cov_adj(beta, C, alpha, X, b, C_linear):
+def ppom_cov_adj(beta, C_quad, alpha, X, b, C_linear):
   if beta == 0:
       return lambda z: alpha + a1*z
   elif beta == 1:
       f = f_linear_cov_adj
-      return lambda z: alpha + a1*C.dot(z)
+      return lambda z: alpha + a1*C_linear.dot(z)
   else:
-      g = lambda z : C.dot(z) / np.array(np.sum(C,1)).flatten()
+      g = lambda z : C_quad.dot(z) / np.array(np.sum(C_quad,1)).flatten()
       if beta == 2:
           f = f_quadratic_cov_adj
       elif beta == 3:
@@ -75,7 +75,7 @@ def ppom_cov_adj(beta, C, alpha, X, b, C_linear):
           f = f_quartic_cov_adj
       else:
           print("ERROR: invalid degree")
-      return lambda z: f(alpha, C_linear.dot(z), g(z), X, b, C) 
+      return lambda z: f(alpha, z, g(z), X, b, C_linear, C_quad)
 
 
 
@@ -428,11 +428,6 @@ def simpleWeights_deg2(X, A, diag=5, offdiag=5, rand_diag=np.array([]), rand_off
     col_sum[col_sum==0] = 1
     temp = scipy.sparse.diags(C_offdiag/col_sum)
     C = C.dot(temp)
-
-    # out_deg = np.array(A.sum(axis=0)).flatten() # array of the out-degree of each node
-    # out_deg[out_deg==0] = 1
-    # temp = scipy.sparse.diags(C_offdiag/out_deg)
-    # C = A.dot(temp)
 
     if rand_diag.size == 0:
         rand_diag = np.random.rand(n)

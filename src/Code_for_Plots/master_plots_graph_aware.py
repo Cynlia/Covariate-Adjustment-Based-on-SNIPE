@@ -20,11 +20,14 @@ def main():
     x_label = ['ratio', 'tp', 'size', 'percent']
     x_var = ['ratio', 'p', 'n', 'rho']
     x_plot = ['$r$', '$p$', '$n$','$\\rho$']
-    #x_label = ['tp', 'size']
-    #x_var = ['p', 'n']
-    #x_plot = ['$p$', '$n$']
-    graph = "srgg"
-    for beta in [2]:
+    #x_label = ['size']
+    #x_var = ['n']
+    #x_plot = ['$n$']
+    #x_label = ['percent']
+    #x_var = ['rho']
+    #x_plot = ['$\\rho$']
+    graph = "er"
+    for beta in [1]:
         if graph == "sw":
             title = ['$\\beta='+str(beta)+', n=9216, p=0.2$','$\\beta='+str(beta)+', n=9216, r=2$','$\\beta='+str(beta)+', p=0.2, r=2$']
         else:
@@ -41,6 +44,8 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
 
     # Create and save plots
     df = pd.read_csv(load_path+graph+experiment+'-SNIPE.csv')
+    df2 = df.groupby([x_var,'Estimator']).agg('mean', numeric_only=True)
+    print(df2["Relative_Bias"])
 
     plt.rc('text', usetex=True)
     
