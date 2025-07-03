@@ -1,5 +1,5 @@
 
-# [Full Paper Title]
+# [Covariate Adjustment Cannot Hurt: Treatment Effect Estimation under Network Interference with Low-Order Outcome Interactions]
 
 [![arXiv](https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b.svg)](https://arxiv.org/abs/XXXX.XXXXX)
 
@@ -32,7 +32,8 @@ Published at [Conference/Journal Name], [Year]
 │       └── master_plots_graph_aware.py
 │   ├── OutFiles/            # Output files (figures, csvs)
 ├── notebooks/               # Jupyter notebooks for demo
-│   └── demo.ipynb
+│   ├── demo.ipynb
+│   └── example.ipynb
 └── paper/                   # Optional copy of the paper
     └── your_paper.pdf
 ```
