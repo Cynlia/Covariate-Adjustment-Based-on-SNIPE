@@ -27,7 +27,7 @@ def main():
     #x_var = ['rho']
     #x_plot = ['$\\rho$']
 
-    graph = "er"
+    graph = "SUTVA"
     for beta in [1]:
         title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$']
         #title = ['$\\beta='+str(beta)+', n=10000, p=0.2, r=2$']
@@ -94,10 +94,42 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
 
         mark_inset(ax, axins, loc1=1, loc2=3, fc="none", ec="gray")
     
+    if model == 'deg1' and  graph == "er":
+        axins = inset_axes(ax, width="80%", height="80%", loc='upper left', 
+                   bbox_to_anchor=(0, 0.5, .5, .5), bbox_transform=ax.transAxes)
+
+        
+        sns.lineplot(
+            x=x_var, y='biassq', hue='Estimator', style='Estimator',
+            data=df2.reset_index(),
+            hue_order=est_names, style_order=est_names,
+            palette=['#ff7f0e', '#2ba02c', '#9468bd', '#d62728', '#2077b4', '#FFC0CB'], markers=False, ax=axins, legend=False
+        )
+
+        axins.set_ylim(0, 0.05)
+        # Adjust zoom region here
+        if x_var == 'n': 
+            axins.set_xlim(4900, 10010)
+        elif x_var == 'p':
+            axins.set_xlim(0.098, 0.502)
+        elif x_var == 'r':
+            axins.set_xlim(-0.1, 4.1)
+        elif x_var == 'pct':
+            axins.set_ylim(-0.1, 1.1)
+
+        axins.set_xticks([])
+        axins.set_yticks([])
+        axins.set_xlabel("")
+        axins.set_ylabel("")
+
+        mark_inset(ax, axins, loc1=1, loc2=3, fc="none", ec="gray")
+    
     
     if model == 'deg1':
         pass
         ax.set_ylim(0,2)
+        if graph == "SUTVA":
+            ax.set_ylim(0,0.05)
     else:
         pass
         #ax.set_xlim(0,6)

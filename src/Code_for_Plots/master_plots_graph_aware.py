@@ -26,7 +26,7 @@ def main():
     #x_label = ['percent']
     #x_var = ['rho']
     #x_plot = ['$\\rho$']
-    graph = "er"
+    graph = "SUTVA"
     for beta in [1]:
         if graph == "sw":
             title = ['$\\beta='+str(beta)+', n=9216, p=0.2$','$\\beta='+str(beta)+', n=9216, r=2$','$\\beta='+str(beta)+', p=0.2, r=2$']
