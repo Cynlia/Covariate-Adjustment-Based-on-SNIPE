@@ -27,7 +27,7 @@ def main():
     #x_var = ['rho']
     #x_plot = ['$\\rho$']
 
-    graph = "SUTVA"
+    graph = "srgg"
     for beta in [1]:
         title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$']
         #title = ['$\\beta='+str(beta)+', n=10000, p=0.2, r=2$']
@@ -43,7 +43,7 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
     # Create and save plots
     df = pd.read_csv(load_path+graph+experiment+'-SNIPE.csv')
 
-    # Compute MSE
+    # Compute relative MSE
     df["biassq"] = df["Bias_squared"]/df["TTE"] ** 2
     # print(df)
     df2 = df.groupby([x_var,'Estimator']).agg('mean', numeric_only=True)
@@ -129,7 +129,7 @@ def plot(graph,x_var,x_label,model,x_plot,title,est_names,permute=False):
         pass
         ax.set_ylim(0,2)
         if graph == "SUTVA":
-            ax.set_ylim(0,0.05)
+            ax.set_ylim(0,0.02)
     else:
         pass
         #ax.set_xlim(0,6)
