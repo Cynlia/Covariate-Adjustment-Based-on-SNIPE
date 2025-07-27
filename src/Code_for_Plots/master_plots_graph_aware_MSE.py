@@ -27,7 +27,7 @@ def main():
     #x_var = ['rho']
     #x_plot = ['$\\rho$']
 
-    graph = "srgg"
+    graph = "SUTVA"
     for beta in [1]:
         title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$']
         #title = ['$\\beta='+str(beta)+', n=10000, p=0.2, r=2$']

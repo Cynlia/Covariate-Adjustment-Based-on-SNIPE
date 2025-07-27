@@ -46,9 +46,9 @@ def main(argv):
         beta = 2
 
     G = 1         # number of graphs we want to average over (10)
-    T = 1          # number of trials per graph (500)
+    T = 500          # number of trials per graph (500)
 
-    graphStr = "er"
+    graphStr = "srgg"
 
     for beta in [1]:
 
@@ -62,7 +62,7 @@ def main(argv):
             diag = 10       # controls magnitude of direct effects
             r = 2           # ratio between indirect and direct effects
             p = 0.2         # treatment probability
-            pct = 1
+            rho = 1
 
             results = []
             sizes = np.array([5000, 6000, 7000, 8000, 9000, 10000]) #    [500, 600, 700, 800, 900]
@@ -95,11 +95,11 @@ def main(argv):
             n = 10000   # number of nodes in network, default 500
             diag = 10       # maximum norm of direct effect
             r = 2           # ratio between indirect and direct effects
+            rho = 1
             if beta == 1:
                 sigma = 0.02
             else:
                 sigma = 0.014
-            pct = 1
 
         
             results = []
@@ -120,7 +120,7 @@ def main(argv):
             print('Runtime (tp experiment) in minutes: {}'.format(executionTime/60),file=f)  
             print('Runtime (tp experiment) in minutes: {}\n'.format(executionTime/60))           
             df = pd.DataFrame.from_records(results)
-            df.to_csv(save_path+graphStr+'-tp-deg'+str(beta)+'-SNIPE-'+'.csv')
+            df.to_csv(save_path+graphStr+'-tp-deg'+str(beta)+'-SNIPE'+'.csv')
 
         ###########################################################
         # Run Experiment: Varying Ratio of Indirect & Direct Effects 
@@ -130,11 +130,11 @@ def main(argv):
             n = 10000     # number of nodes in network, default 500
             p = 0.35             # treatment probability
             diag = 10           # maximum norm of direct effect
+            rho = 1
             if beta == 1:
                 sigma = 0.02
             else:
                 sigma = 0.014
-            pct = 1
 
             results = []
             ratio = [0.01, 0.1, 0.25,0.5,0.75,1,1/0.75,1/0.5,3,1/0.25] #[0.01, 0.1, 0.25,0.5,0.75,1,1/0.75,1/0.5,3,1/0.25]
@@ -154,7 +154,7 @@ def main(argv):
             print('Runtime (ratio experiment) in minutes: {}'.format(executionTime/60),file=f)   
             print('Runtime (ratio experiment) in minutes: {}\n'.format(executionTime/60))           
             df = pd.DataFrame.from_records(results)
-            df.to_csv(save_path+graphStr+'-ratio-deg'+str(beta)+'-SNIPE-'+'.csv')
+            df.to_csv(save_path+graphStr+'-ratio-deg'+str(beta)+'-SNIPE'+'.csv')
 
         ###########################################################
         # Run Experiment: Varying Percent of Covariate Explanation  
@@ -174,7 +174,7 @@ def main(argv):
             rhos = [0, 0.2, 0.4, 0.6, 0.8, 1]
 
             for rho in rhos:
-                print('percent: {}'.format(pct))
+                print('percent: {}'.format(rho))
                 startTime3 = time.time()
 
                 results.extend(run_experiment(G,T,n,p,r,sigma,rho,graphStr,diag,beta))
@@ -187,7 +187,7 @@ def main(argv):
             print('Runtime (percent experiment) in minutes: {}'.format(executionTime/60),file=f)   
             print('Runtime (percent experiment) in minutes: {}\n'.format(executionTime/60))           
             df = pd.DataFrame.from_records(results)
-            df.to_csv(save_path+graphStr+'-percent-deg'+str(beta)+'-SNIPE-'+'.csv')
+            df.to_csv(save_path+graphStr+'-percent-deg'+str(beta)+'-SNIPE'+'.csv')
 
         executionTime = (time.time() - startTime1)
         print('Runtime (whole script) in minutes: {}'.format(executionTime/60),file=f)
@@ -254,7 +254,7 @@ def run_experiment(G,T,n,p,r,sigma,rho,graphStr,diag=1,beta=2):
             estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))
             estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))
             estimators.append(lambda y,z,w: ncls.SNIPE_deg1(n,y,w))
-            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(y, X, z))
+            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(y, X, z, p))
         else:
             estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))
             estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))
