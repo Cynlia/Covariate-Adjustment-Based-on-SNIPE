@@ -21,7 +21,7 @@ def main():
     x_var = ['ratio', 'p', 'n', 'rho']
     x_plot = ['$r$', '$p$', '$n$','$\\rho$']
 
-    graph = "SUTVA"
+    graph = "er"
     for beta in [1, 2]:
         title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$']
         est_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', 'Lin\'s', 'DM']
