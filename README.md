@@ -5,7 +5,7 @@
 
 This repository contains the code for our paper:
 
-**"[Covariate Adjustment Cannot Hurt: Treatment Effect Estimation under Interference with Low-Order Outcome Interactions]"**  
+**Covariate Adjustment Cannot Hurt: Treatment Effect Estimation under Interference with Low-Order Outcome Interactions**  
 Xinyi Wang, Shuangning Li  
 <!--Published at [Conference/Journal Name], [Year]-->  
 [Link to arXiv or publication]
