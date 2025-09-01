@@ -21,8 +21,7 @@ def main():
     x_var = ['ratio', 'p', 'n', 'rho']
     x_plot = ['$r$', '$p$', '$n$','$\\rho$']
     graph = "SUTVA"
-    for beta in [1]:
-        #title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$', '$\\beta='+str(beta)+'$']
+    for beta in [1, 2]:
         est_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', r'$\hat{\mathrm{TTE}}(\hat{\theta}_{\mathrm{Lin}})$']
         for ind in [0,1,2,3]:
             plot(graph,x_var[ind],x_label[ind],'deg'+str(beta),x_plot[ind],est_names,permute=True)

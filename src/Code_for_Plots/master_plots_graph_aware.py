@@ -20,19 +20,9 @@ def main():
     x_label = ['ratio', 'tp', 'size', 'percent']
     x_var = ['ratio', 'p', 'n', 'rho']
     x_plot = ['$r$', '$p$', '$n$','$\\rho$']
-    #x_label = ['size']
-    #x_var = ['n']
-    #x_plot = ['$n$']
-    #x_label = ['percent']
-    #x_var = ['rho']
-    #x_plot = ['$\\rho$']
     graph = "SUTVA"
-    for beta in [1]:
-        if graph == "sw":
-            title = ['$\\beta='+str(beta)+', n=9216, p=0.2$','$\\beta='+str(beta)+', n=9216, r=2$','$\\beta='+str(beta)+', p=0.2, r=2$']
-        else:
-            title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$', '$\\beta='+str(beta)+'$']
-            #title = ['$\\beta='+str(beta)+', n=10000, p=0.2, r=2$']
+    for beta in [1, 2]:
+        title = ['$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$','$\\beta='+str(beta)+'$', '$\\beta='+str(beta)+'$']
         est_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', 'Lin\'s', 'DM']
         for ind in [0,1,2,3]:
             plot(graph,x_var[ind],x_label[ind],'deg'+str(beta),x_plot[ind],title[ind],est_names,permute=True)

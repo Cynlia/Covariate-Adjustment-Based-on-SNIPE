@@ -244,15 +244,16 @@ def run_experiment(G,T,n,p,r,sigma,rho,graphStr,diag=1,beta=2):
         ####### Estimate ########
         estimators = []
         if beta == 1:
-            estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))
-            estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))
-            estimators.append(lambda y,z,w: ncls.SNIPE_deg1(n,y,w))
-            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(y, X, z))
+            estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))              # Reg-SNIPE(1)
+            estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))  # VIM-SNIPE(1) 
+            estimators.append(lambda y,z,w: ncls.SNIPE_deg1(n,y,w))                 # SNIPE(1)
+            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(y, X, z))           # Lin's estimator  
+            # estimators.append(lambda y,z,w: ncls.SNIPE_Lin_Inpute(y, X, z, p))    # Inpute version of Lin's estimator
         else:
-            estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))
-            estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))
-            estimators.append(lambda y,z,w: ncps.SNIPE_beta(n,y,w))
-            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(y, X, z))
+            estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))              # Reg-SNIPE(2)
+            estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))  # VIM-SNIPE(2)
+            estimators.append(lambda y,z,w: ncps.SNIPE_beta(n,y,w))                 # SNIPE(2)
+            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(y, X, z))           # Lin's estimator
             
         estimators.append(lambda y,z,w: ncls.diff_in_means_naive(y,z))
         alg_names = ['Reg', 'VIM', 'SNIPE('+str(beta)+')', 'Lin\'s', 'DM']

@@ -1264,3 +1264,18 @@ def SNIPE_beta_Lin(y, X, z):
     Yest = y.dot(z)/n1 - y.dot(1-z)/n0
     est = Yest -  Xest
     return est
+
+def SNIPE_Lin_Inpute(y, X, z, p):
+    n0, n1 = np.sum(1-z), np.sum(z)
+    n = n0+n1
+
+    X0 = np.hstack((np.ones((n0, 1)), X[z == 0, :]))
+    X1 = np.hstack((np.ones((n1, 1)), X[z == 1, :]))
+    
+    gamma0 = np.linalg.inv(X0.T @ X0) @ X0.T @ (y[z == 0])
+    gamma1 = np.linalg.inv(X1.T @ X1) @ X1.T @ (y[z == 1])
+    gamma = gamma1[1:]*n0/n + gamma0[1:]*n1/n
+    Yest = y.dot(z)/p/n - y.dot(1-z)/(1-p)/n
+    Xest = np.sum((X * z[:, None]) / p / n, axis=0) - np.sum((X * (1-z[:, None])) / (1 - p) / n, axis=0)
+    est = Yest -  gamma.dot(Xest)
+    return est
