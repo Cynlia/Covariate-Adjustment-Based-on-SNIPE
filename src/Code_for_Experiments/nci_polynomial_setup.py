@@ -136,11 +136,8 @@ def poly_interp_linear(n, P, sums):
   sums (numpy array): sums of outcomes at each time step
   '''
 
-  #f_lin = interpolate.interp1d(P, sums, fill_value='extrapolate')
   f_spl = interpolate.interp1d(P, sums, kind='slinear', fill_value='extrapolate')
-  #TTE_hat1 = (1/n)*(f_lin(1) - f_lin(0))
   TTE_hat2 = (1/n)*(f_spl(1) - f_spl(0))
-  #return TTE_hat1, TTE_hat2
   return TTE_hat2
 
 
@@ -176,11 +173,6 @@ def poly_regression_prop_cy(beta, y, A, z):
   X = np.ones((n,2*beta+2))
   z = z.reshape((n,1))
   treated_neighb = (A.dot(z)-z)/(np.array(A.sum(axis=1)).flatten()-1+1e-10)
-  # temp = 1
-  # for i in range(beta+1):
-  #     X[:,i] = np.multiply(z,temp)
-  #     X[:,beta+1+i] = np.multiply(1-z,temp)
-  #     temp = temp * treated_neighb
   treated_neighb = np.power(treated_neighb.reshape((n,1)), np.arange(beta+1).reshape((1,beta+1)))
   X[:,:beta+1] = z.dot(treated_neighb)
   X[:,beta+1:] = (1-z).dot(treated_neighb)
@@ -231,11 +223,6 @@ def poly_regression_num_cy(beta, y, A, z):
   X = np.ones((n,2*beta+2))
   z = z.reshape((n,1))
   treated_neighb = (A.dot(z)-z)
-  # temp = 1
-  # for i in range(beta+1):
-  #     X[:,i] = np.multiply(z,temp)
-  #     X[:,beta+1+i] = np.multiply(1-z,temp)
-  #     temp = temp * treated_neighb
   treated_neighb = np.power(treated_neighb.reshape((n,1)), np.arange(beta+1).reshape((1,beta+1)))
   X[:,:beta+1] = z.dot(treated_neighb)
   X[:,beta+1:] = (1-z).dot(treated_neighb)
@@ -246,10 +233,6 @@ def poly_regression_num_cy(beta, y, A, z):
   # Estimate TTE
   X = np.zeros((n,2*beta+2))
   deg = np.array(A.sum(axis=1)).flatten()-1
-  # temp = 1
-  # for i in range(beta+1):
-  #     X[:,i] = temp
-  #     temp = temp * deg
   X[:,:beta+1] = np.power(deg.reshape((n,1)), np.arange(beta+1).reshape((1,beta+1)))
   TTE_hat = np.sum((X @ v) - v[beta+1])/n
 
@@ -382,30 +365,6 @@ def compute_component_D_deg2(X, A, p, c_est_list):
                     
             
     return 2 * ret/ n ** 2
-
-def compute_component_D_deg2_old(X, A, p, c_est_list):
-    '''
-    c_est_list: a list of length n, the i-th element of the list is a vector (\hat{c}_{i,S})_S
-    '''
-    n = len(X)
-    ret = np.zeros((X.shape[1],))
-    for i in range(n):
-        l = len(A[[i],:].indices)
-        sp_to_sp_id = {neighbor : index for index, neighbor in enumerate(A[[i],:].indices)}
-        pair_to_pair_id = {neighbor : {neighbor_p : int((2*l-1-index) * index / 2 + index_p - index - 1) for index_p, neighbor_p in enumerate(A[[i],:].indices) if index_p > index} for index, neighbor in enumerate(A[[i],:].indices)}
-        for ip in np.unique(A[:,A[[i],:].indices].nonzero()[0]):
-            beta1_id = len(set(A[[i],:].indices))
-            temp_len = len(set(A[[i],:].indices) & set(A[[ip],:].indices))
-            c_est_null = c_est_list[i][0] + p * sum(c_est_list[i][1:(beta1_id+1)]) + sum(c_est_list[i][(beta1_id +1):]) * p ** 2
-            ret += X[ip] * c_est_null * temp_len / (p * (1 - p))
-            ret += X[ip] * c_est_null * temp_len * (temp_len - 1) / 2 * (1 / p ** 3 + 1 / (1 - p) ** 3) * (1 - 2*p) ** 2
-            for sp in set(A[[i],:].indices) & set(A[[ip],:].indices):
-                sp_id = sp_to_sp_id[sp]
-                ret += X[ip] * (c_est_list[i][sp_id + 1] + p*(np.sum(c_est_list[i][list(pair_to_pair_id[sp].values())]))) * (1-2*p) / (p * (1 - p))
-            ret += X[ip] * (np.sum(c_est_list[i][l + 1:])) * ((1-p)**2 / p ** 3 + p**2 / (1 - p) ** 3) * (1 - 2*p) ** 2
-    #t2 = time.time()
-    #print("component D", t2-t1)
-    return 2 * ret/ n ** 2 
 
 
 def simpleWeights_deg2(X, A, diag=5, offdiag=5, rand_diag=np.array([]), rand_offdiag=np.array([])):

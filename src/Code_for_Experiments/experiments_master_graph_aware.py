@@ -1,5 +1,5 @@
 '''
-Script to run (three) experiments for different values of beta
+Script to run four experiments for different values of beta
 
 Running this script will save the (new) results into outputFiles/new/
 To view the original results from the paper, see outputFiles/graph_aware/
@@ -10,22 +10,16 @@ import numpy as np
 import pandas as pd
 import sys
 import time
-import scipy.sparse
 import nci_linear_setup as ncls
 import nci_polynomial_setup as ncps
-import os
-import pickle
-from multiprocessing import Pool
-from functools import partial
-#num_cores = int(os.getenv('SLURM_CPUS_PER_TASK'))
 import warnings
 warnings.filterwarnings("ignore")
 
 
 
 path_to_module = 'Code-for-Experiments/'
-#save_path = 'outputFiles/new/'
-save_path = 'outputFiles/graph_aware/'
+save_path = 'outputFiles/new/'
+#save_path = 'outputFiles/graph_aware/'
 save_path_graphs = 'graphs/'
 
 # Read seed from command-line argument
@@ -35,7 +29,6 @@ save_path_graphs = 'graphs/'
 # parameters for covariate adjustment
 #############################################
 
-covariate_adj = True
 covariate_dim = 3
 
 
@@ -45,12 +38,12 @@ def main(argv):
     else:
         beta = 2
 
-    G = 1         # number of graphs we want to average over (10)
-    T = 500          # number of trials per graph (500)
+    G = 1               # number of graphs we want to average over
+    T = 500             # number of trials per graph (500)
 
-    graphStr = "srgg"
+    graphStr = "srgg"   #srgg for soft RGG; er for Erdos-Renyi; SUTVA for no interference
 
-    for beta in [1]:
+    for beta in [1, 2]:
 
         f = open(save_path+'experiments_output_deg'+str(beta)+'_SNIPE'+'.txt', 'w')
         startTime1 = time.time()
@@ -62,10 +55,10 @@ def main(argv):
             diag = 10       # controls magnitude of direct effects
             r = 2           # ratio between indirect and direct effects
             p = 0.2         # treatment probability
-            rho = 1
+            rho = 1         # percent of observed covariates
 
             results = []
-            sizes = np.array([5000, 6000, 7000, 8000, 9000, 10000]) #    [500, 600, 700, 800, 900]
+            sizes = np.array([5000, 6000, 7000, 8000, 9000, 10000])
             if beta == 1:
                 sigmas = np.array([0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02])
             elif beta == 2:
@@ -92,10 +85,10 @@ def main(argv):
         ################################################
         if True:    
             startTime2 = time.time()
-            n = 10000   # number of nodes in network, default 500
+            n = 10000       # number of nodes in network
             diag = 10       # maximum norm of direct effect
             r = 2           # ratio between indirect and direct effects
-            rho = 1
+            rho = 1         # percent of observed covariates
             if beta == 1:
                 sigma = 0.02
             else:
@@ -103,7 +96,7 @@ def main(argv):
 
         
             results = []
-            p_treatments = np.array([0.1, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50]) # treatment probabilities [0.1, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50]
+            p_treatments = np.array([0.1, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50]) # treatment probabilities
 
         
             for p in p_treatments:
@@ -127,17 +120,17 @@ def main(argv):
         ###########################################################
         if True:
             startTime2 = time.time()
-            n = 10000     # number of nodes in network, default 500
+            n = 10000            # number of nodes in network, default 500
             p = 0.35             # treatment probability
-            diag = 10           # maximum norm of direct effect
-            rho = 1
+            diag = 10            # maximum norm of direct effect
+            rho = 1              # percent of observed covariates
             if beta == 1:
                 sigma = 0.02
             else:
                 sigma = 0.014
 
             results = []
-            ratio = [0.01, 0.1, 0.25,0.5,0.75,1,1/0.75,1/0.5,3,1/0.25] #[0.01, 0.1, 0.25,0.5,0.75,1,1/0.75,1/0.5,3,1/0.25]
+            ratio = [0.01, 0.1, 0.25,0.5,0.75,1,1/0.75,1/0.5,3,1/0.25]
 
         
             for r in ratio:
@@ -161,14 +154,14 @@ def main(argv):
         ###########################################################
         if True:
             startTime2 = time.time()
-            n = 10000     # number of nodes in network, default 500
+            n = 10000            # number of nodes in network, default 500
             p = 0.35             # treatment probability
-            diag = 10           # maximum norm of direct effect
+            diag = 10            # maximum norm of direct effect
+            r = 2                # ratio between indirect and direct effects
             if beta == 1:
                 sigma = 0.02
             else:
                 sigma = 0.014
-            r = 2           # ratio between indirect and direct effects
 
             results = []
             rhos = [0, 0.2, 0.4, 0.6, 0.8, 1]
@@ -254,7 +247,7 @@ def run_experiment(G,T,n,p,r,sigma,rho,graphStr,diag=1,beta=2):
             estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))
             estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))
             estimators.append(lambda y,z,w: ncls.SNIPE_deg1(n,y,w))
-            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(y, X, z, p))
+            estimators.append(lambda y,z,w: ncls.SNIPE_beta_Lin(y, X, z))
         else:
             estimators.append(lambda y,z,w: ncps.Reg_beta(n, y, X, w))
             estimators.append(lambda y,z,w: ncls.VIM_beta(n, y, X, w, components))

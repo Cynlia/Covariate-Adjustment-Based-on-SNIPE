@@ -1,11 +1,7 @@
 import numpy as np
-import random
 import networkx as nx
 import scipy.sparse
-from sklearn.linear_model import LinearRegression
-from scipy.special import comb
 from itertools import combinations
-import time
 from scipy.spatial import distance_matrix
 
 ########################################
@@ -740,12 +736,8 @@ def est_covariate_coeff_test(X, y, z, A, treatment_vec,beta):
             neighbor_mask = (A[[i],:]==1).toarray()[0]
             tilde_zi = z[neighbor_mask]
             tilde_zi = np.concatenate((np.array([1]), tilde_zi))
-            # treatment_vec_cp[i] = 1
             local_treatment_vec = treatment_vec_cp[neighbor_mask]
             local_treatment_vec = np.concatenate((np.array([1]), local_treatment_vec))
-            # E = local_treatment_vec[:,None] @ local_treatment_vec[None,:]
-            # E[range(len(E)),range(len(E))] = local_treatment_vec
-            # E_inv = np.linalg.inv(E)
             E_inv = np.zeros((len(local_treatment_vec), len(local_treatment_vec)))
             E_inv[0,0] = 1 + np.sum(local_treatment_vec[1:] / (1 - local_treatment_vec[1:]))
             E_inv[0,1:] = -1 / (1 - local_treatment_vec[1:])
@@ -753,7 +745,6 @@ def est_covariate_coeff_test(X, y, z, A, treatment_vec,beta):
             E_inv[range(1,len(local_treatment_vec)), range(1,len(local_treatment_vec))] = 1 / (local_treatment_vec[1:] * (1 - local_treatment_vec[1:]))
             temp = np.ones(E_inv.shape[0])
             temp[0] = 0
-            # print("running me")
             return (temp[None,:] @ E_inv @ tilde_zi[:,None])[0,0]
     
         tilde_coeff = np.array([tc(i) for i in range(len(z))])
@@ -763,7 +754,6 @@ def est_covariate_coeff_test(X, y, z, A, treatment_vec,beta):
             neighbor_mask = (A[[i],:]==1).toarray()[0]
             tilde_zi = z[neighbor_mask]
             tilde_zi = np.concatenate((np.array([1]), tilde_zi))
-            # treatment_vec_cp[i] = 1
             local_treatment_vec = treatment_vec_cp[neighbor_mask]
             local_treatment_vec = np.concatenate((np.array([1]), local_treatment_vec))
             E_inv = np.zeros((len(local_treatment_vec), len(local_treatment_vec)))
@@ -791,15 +781,7 @@ def est_covariate_coeff_test(X, y, z, A, treatment_vec,beta):
         e_beta = np.zeros((3, 4))  # Initialize a 3x4 zero matrix
         e_beta[:, :3] = np.eye(3)
         try:
-            # res = np.linalg.inv(X_weighted.T @ X_weighted + e_U @ e_U.T 
-                                # * (np.sum(X_modified)**2-np.sum(X_modified**2))) @ ((X_weighted.T @ Y_weighted).reshape((-1,1)) + e_U * (np.sum(X_modified)*np.sum(Y_weighted)-np.sum(X_modified*Y_weighted)))
-            # res = res.reshape((-1,))
             res = np.linalg.inv(X_weighted.T @ X_weighted) @ X_weighted.T @ Y_weighted
-            # res = np.linalg.inv(np.sum(X_weighted, axis = 0).reshape((-1,1)) @ (np.sum(X_weighted, axis = 0).reshape((-1,1))).T 
-                               #+  e_beta.T @ np.sum(np.diag(tilde_coeff) @ X, axis = 0).reshape((-1,1)) @ e_U.T 
-                                #* np.sum(X @ np.ones(X.shape[1])[:,None] 
-                                         #* (num_tr_ngb(A, z)[:,None]+1))) @ np.sum(X_weighted, axis = 0).reshape((-1,1))*np.sum(Y_weighted)
-            # res = res.reshape((-1,))
         except np.linalg.LinAlgError:
             print(tilde_coeff)
             treatment_vec_cp = np.copy(treatment_vec)
@@ -960,42 +942,6 @@ def SNIPE_deg1(n, y, w):
     z (numpy array): treatment vector
     '''
     return 1/n * y.dot(w)
-
-def SNIPE_deg1_cov_adj(n, y, w, X, A, z, treatment_vec):
-    # Xtilde_1 = np.hstack([X, np.ones(n)[:,None] * X, prop_tr_ngb(n, A, np.ones(n))[:,None] * X, num_tr_ngb(n, A, np.ones(n))[:,None] * X])
-    # Xtilde_0 = np.hstack([X, np.zeros(n)[:,None] * X, prop_tr_ngb(n, A, np.zeros(n))[:,None] * X, num_tr_ngb(n, A, np.zeros(n))[:,None] * X])
-    # Xtilde_1 = np.hstack([X, np.ones(n)[:,None] * X, prop_tr_ngb(n, A, np.ones(n))[:,None] * X])
-    # Xtilde_0 = np.hstack([X, np.zeros(n)[:,None] * X, prop_tr_ngb(n, A, np.zeros(n))[:,None] * X])
-    #return 1/n * y.dot(w)+np.mean(Xtilde_1.dot(b_est) - Xtilde_0.dot(b_est))
-    def tc_SNIPE_deg1_cov_adj1(i):
-        treatment_vec_cp = np.copy(treatment_vec)
-        neighbor_mask = (A[[i],:]==1).toarray()[0]
-        tilde_zi = z[neighbor_mask]
-        treatment_vec_cp[i] = 1
-        local_treatment_vec = treatment_vec_cp[neighbor_mask]
-        E = local_treatment_vec[:,None] @ local_treatment_vec[None,:]
-        E[range(len(E)),range(len(E))] = local_treatment_vec
-        E_inv = np.linalg.inv(E)
-        return (1 - local_treatment_vec[None,:] @ E_inv @ tilde_zi[:,None])[0,0]
-    
-    def tc_SNIPE_deg1_cov_adj2(i):
-        treatment_vec_cp = np.copy(treatment_vec)
-        neighbor_mask = (A[[i],:]==1).toarray()[0]
-        tilde_zi = z[neighbor_mask]
-        treatment_vec_cp[i] = 1
-        local_treatment_vec = treatment_vec_cp[neighbor_mask]
-        E = local_treatment_vec[:,None] @ local_treatment_vec[None,:]
-        E[range(len(E)),range(len(E))] = local_treatment_vec
-        E_inv = np.linalg.inv(E)
-        A_temp = local_treatment_vec[None,:] @ E_inv @ tilde_zi[:,None]
-        return ((A_temp)[0,0]/(1 + A_temp)[0,0])
-    
-    tilde_coeff1 = np.array([tc_SNIPE_deg1_cov_adj1(i) for i in range(len(z))])
-    beta_est = np.linalg.inv(X.T @ np.diag(tilde_coeff1) @ X) @ X.T @ np.diag(tilde_coeff1) @ y
-    tilde_coeff2 = np.array([tc_SNIPE_deg1_cov_adj2(i) for i in range(len(z))])
-    Ztilde_C = np.diag(tilde_coeff2) @ (y - X @ beta_est)
-    X
-    
 
 def est_us_clusters(n, p, y, A, z, clusters=np.array([])):
     '''
@@ -1258,7 +1204,6 @@ def combination_expectation(p, N_i, N_ip, input_list):
     mask_N_ip = np.array([True if idx in set(N_i) & set(N_ip) else False for idx in N_ip])
     for tup in input_list:
         coeff, source = tup
-        # print(coeff, source, mask_N_i, mask_N_ip)
         if source == 0:
             ret *= coeff[mask_N_i]
         elif source == 1:
@@ -1285,7 +1230,6 @@ def combination_expectation(p, N_i, N_ip, input_list):
         return ret + extra
     else:
         raise ValueError
-
 
 def get_c_est(A, z, y, treatment_vec, i):
     treatment_vec_cp = np.copy(treatment_vec)

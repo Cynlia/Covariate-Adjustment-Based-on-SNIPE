@@ -5,9 +5,9 @@
 
 This repository contains the code for our paper:
 
-**"[Full Paper Title]"**  
-[Your Name], [Collaborator Names]  
-Published at [Conference/Journal Name], [Year]  
+**"[Covariate Adjustment Cannot Hurt: Treatment Effect Estimation under Interference with Low-Order Outcome Interactions]"**  
+Xinyi Wang, Shuangning Li  
+<!--Published at [Conference/Journal Name], [Year]-->  
 [Link to arXiv or publication]
 
 ---
@@ -17,9 +17,7 @@ Published at [Conference/Journal Name], [Year]
 ```
 .
 ├── README.md                # Project overview
-├── requirements.txt         # Python dependencies
 ├── LICENSE                  # License file
-├── CITATION.cff             # Citation metadata
 ├── data/                    # Data scripts or instructions
 │   └── README.md
 ├── src/                     # Core method implementations
@@ -27,70 +25,35 @@ Published at [Conference/Journal Name], [Year]
 │       ├── experiments_master_graph_aware.py
 │       ├── nci_linear_setup.py
 │       └── nci_polynomial_setup.py
-│   └── Codes_for_Plots/
+│   ├── Codes_for_Plots/
 │       ├── master_plots_graph_aware_MSE.py
 │       └── master_plots_graph_aware.py
-│   ├── OutFiles/            # Output files (figures, csvs)
+│   └── OutFiles/.           # Output files (figures, csvs)
+│       ├── graph_aware/.    # Outputs in paper
+│       └── new/.                        
 ├── notebooks/               # Jupyter notebooks for demo
-│   ├── demo.ipynb
-│   └── example.ipynb
-└── paper/                   # Optional copy of the paper
+│   └── demo.ipynb
+└── paper/                   # Copy of the paper
     └── your_paper.pdf
 ```
 
 ---
 
-## 🚀 Getting Started
-
-### 1. Clone the repo
+## 🚀 Clone the repo
 
 ```bash
-git clone https://github.com/yourusername/your-repo-name.git
-cd your-repo-name
+git clone https://github.com/Cynlia/Covariate-Adjustment-Based-on-SNIPE.git
+cd Covariate-Adjustment-Based-on-SNIPE
 ```
-
-### 2. Install dependencies
-
-We recommend using a virtual environment.
-
-```bash
-pip install -r requirements.txt
-```
-
 ---
 
 ## ▶️ Running the Code
 
-To reproduce the main experiment:
+To run the main experiment:
 
 ```bash
-bash scripts/run_experiment.sh
+python src/Code_for_Experiments/experiments_master_graph_aware.py
 ```
-
-To generate Figure 1 from the paper:
-
-```bash
-python scripts/plot_results.py --input results/output.pkl --figure results/figures/figure1.pdf
-```
-
----
-
-## 📊 Reproducing Paper Results
-
-All experiments can be reproduced using the provided scripts. If data is required:
-- See `data/README.md` for instructions to generate or download datasets.
-- Precomputed results and figures are provided in `results/` where possible.
-
----
-
-## 🔍 Novel Contributions
-
-The following parts are **original contributions** of this project:
-
-- Implementation of **[Your Method Name]** (`src/our_method.py`)
-- Simulation framework and evaluation pipeline
-- Benchmarking comparison across baseline methods
-- Scripts for figure generation and result aggregation
 
 ---
 
@@ -129,7 +92,7 @@ If you use this repository, please cite our paper:
 ## 📬 Contact
 
 For questions or collaborations, please contact:  
-[Your Name] – [your.email@domain.edu]  
-[Your Institution]
+Xinyi Wang – wang.xinyi@berkeley.edu  
+Shuangning Li - shuangning.li@chicagobooth.edu
 
 ---
