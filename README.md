@@ -18,8 +18,6 @@ Xinyi Wang, Shuangning Li
 .
 ├── README.md                # Project overview
 ├── LICENSE                  # License file
-├── data/                    # Data scripts or instructions
-│   └── README.md
 ├── src/                     # Core method implementations
 │   ├── Codes_for_Experiments/
 │       ├── experiments_master_graph_aware.py
@@ -31,10 +29,8 @@ Xinyi Wang, Shuangning Li
 │   └── OutFiles/.           # Output files (figures, csvs)
 │       ├── graph_aware/.    # Outputs in paper
 │       └── new/.                        
-├── notebooks/               # Jupyter notebooks for demo
-│   └── demo.ipynb
-└── paper/                   # Copy of the paper
-    └── your_paper.pdf
+└── notebooks/               # Jupyter notebooks for demo
+    └── demo.ipynb
 ```
 
 ---
