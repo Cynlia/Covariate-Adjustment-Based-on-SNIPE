@@ -1,14 +1,14 @@
 
 # Covariate Adjustment Cannot Hurt: Treatment Effect Estimation under Network Interference with Low-Order Outcome Interactions
 
-[![arXiv](https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b.svg)](https://arxiv.org/abs/XXXX.XXXXX)
+[![arXiv](https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b.svg)](https://arxiv.org/abs/2509.03050)
 
 This repository contains the code for our paper:
 
 **Covariate Adjustment Cannot Hurt: Treatment Effect Estimation under Interference with Low-Order Outcome Interactions**  
 Xinyi Wang, Shuangning Li  
 <!--Published at [Conference/Journal Name], [Year]-->  
-[Link to arXiv or publication]
+[[Link to arXiv or publication](https://arxiv.org/abs/2509.03050)]
 
 ---
 
@@ -79,11 +79,11 @@ This code is released under the [MIT License](LICENSE), except for components ad
 If you use this repository, please cite our paper:
 
 ```bibtex
-@inproceedings{yourbibtexentry,
-  title={Your Paper Title},
-  author={Your Name and Collaborator},
-  year={2025},
-  journal={Conference/Journal Name}
+@article{wang2025covariate,
+  title={Covariate Adjustment Cannot Hurt: Treatment Effect Estimation under Interference with Low-Order Outcome Interactions},
+  author={Wang, Xinyi and Li, Shuangning},
+  journal={arXiv preprint arXiv:2509.03050},
+  year={2025}
 }
 ```
 
