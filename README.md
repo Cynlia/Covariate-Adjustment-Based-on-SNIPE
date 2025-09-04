@@ -1,7 +1,7 @@
 
 # Covariate Adjustment Cannot Hurt: Treatment Effect Estimation under Network Interference with Low-Order Outcome Interactions
 
-[![arXiv](https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b.svg)](https://arxiv.org/abs/2509.03050)
+[![arXiv](https://img.shields.io/badge/arXiv-2509.03050-b31b1b.svg)](https://arxiv.org/abs/2509.03050)
 
 This repository contains the code for our paper:
 
